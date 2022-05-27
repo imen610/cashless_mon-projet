@@ -12,10 +12,10 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from django.contrib.auth import get_user_model
 from cashless.settings import SECRET_KEY
-from  .serializers import LoginSerializer, ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UserSerializer
+from  .serializers import BraceletSerializer, LoginSerializer, ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UserSerializer
 from rest_framework.response import Response 
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import  User, Shop, product
+from .models import  Bracelet, User, Shop, product
 from cashless.utils import Util
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
@@ -249,6 +249,9 @@ class ProductUpdateAPIView(views.APIView):
         prod = product.objects.get(id=id)
         prod.delete()
         return Response(status= status.HTTP_204_NO_CONTENT)
+
+
+
 class ShopProductAPIView(views.APIView):
 
     def get(self,request,id):
@@ -272,9 +275,10 @@ class ShopProductAPIView(views.APIView):
         serializer = ProductSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            print(serializer.data)
-            e.add(serializer.data[id])
-            return  Response(serializer.data , status=status.HTTP_200_OK)
+            l = list(serializer.data.values())[0]
+            print(l)
+            e.products.add(l)
+        return Response(serializer.data , status=status.HTTP_200_OK)
 
         
 # ************************* !!!!!!!!!!!!!!!! **********************************
@@ -316,9 +320,14 @@ class membreAPIView(views.APIView):
         serializer = UserSerializer(membres, many = True)
         return Response(serializer.data , status=status.HTTP_200_OK)
 
-
     def post(self,request,id):
-        return Response(status=status.HTTP_201_CREATED)
+        e = User.objects.get(id=id)
+        serializer = UserSerializer(data = request.data)
+        if serializer.is_valid():
+            serializer.save()
+            l = list(serializer.data.values())[0]
+            e.membre.add(l)
+        return Response(serializer.data,status=status.HTTP_201_CREATED)
     
 
 class membreUpdateAPIView(views.APIView):
@@ -347,4 +356,8 @@ class membreUpdateAPIView(views.APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
+class BraceletAPIView(views.APIView):
+    def get(self,request):
+        bracelets = Bracelet.objects.all()
+        serializer = BraceletSerializer(bracelets,many=True)
+        return Response(serializer.data, status = status.HTTP_200_OK)

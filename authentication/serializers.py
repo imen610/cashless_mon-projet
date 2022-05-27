@@ -3,7 +3,7 @@ from pkg_resources import require
 from rest_framework.exceptions import APIException
 from asyncio.log import logger
 from http.client import OK
-from .models import User, Shop, product
+from .models import Bracelet, User, Shop, product
 from rest_framework import serializers 
 from django.contrib.auth import authenticate
 from django.contrib import auth
@@ -158,3 +158,8 @@ class ShopSerializer(serializers.ModelSerializer):
         fields = ['id','name_shop','email_shop','address_shop','products']
         depth = 1
     
+class BraceletSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Bracelet
+        fields = ['id','user','shop','amount','maximum_amount']
+        depth = 1
