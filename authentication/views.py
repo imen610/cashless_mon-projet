@@ -1,19 +1,21 @@
-from django.shortcuts import render
-
 # Create your views here.
 
-
+from cgitb import lookup
+from os import stat
+from re import S
+from urllib3 import HTTPResponse
+from cashless import settings
 from django.shortcuts import render
 from rest_framework import generics, status,views
 from django.conf import settings
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-
+from django.contrib.auth import get_user_model
 from cashless.settings import SECRET_KEY
-from  .serializers import LoginSerializer, RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer
-from rest_framework.response import Response
+from  .serializers import LoginSerializer, ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UserSerializer
+from rest_framework.response import Response 
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User
+from .models import  User, Shop, product
 from cashless.utils import Util
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
@@ -25,7 +27,7 @@ from django.utils.encoding import smart_str,force_str , smart_bytes ,DjangoUnico
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from cashless.utils import Util
-
+from rest_framework.generics import ListCreateAPIView,RetrieveUpdateDestroyAPIView
     
 
 from authentication import serializers
@@ -87,17 +89,16 @@ class verifyEmail(views.APIView):
         
 
     
-class LoginAPIView(generics.GenericAPIView):
+class LoginAPIView(views.APIView):
 
     
     
-    serializer_class = LoginSerializer
+   # serializer_class = LoginSerializer
 
     
     def post(self,request):
         
-        print(request.data['email'])
-        print(request.data['password'])
+        
         serializer=LoginSerializer(data=request.data)
        # user=User.objects.filter(email=request.data['email'],password=request.data['password']).first()
         if serializer.is_valid():
@@ -107,6 +108,8 @@ class LoginAPIView(generics.GenericAPIView):
                 return Response(data,status=status.HTTP_400_BAD_REQUEST)
             except:    
              return Response(data)
+        data={"Error":"Invaild Credential"}  
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)   
 
         
         
@@ -157,4 +160,191 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         return Response({'success': True,'message':'Password reset success'},status=status.HTTP_200_OK)
 
- 
+class UserList(ListCreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class UserDetail(RetrieveUpdateDestroyAPIView):
+    queryset = User
+    serializer_class = UserSerializer
+
+
+class ShopAPIView(views.APIView):
+
+    
+    def get(self,request):
+        shops = Shop.objects.all()
+        serializer= ShopSerializer(shops,many=True)
+        return Response(serializer.data,status = status.HTTP_200_OK)
+
+    def post(self,request):
+        serializer=ShopSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=status.HTTP_201_CREATED)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+class ShopUpdateAPIView(views.APIView):
+    lookup_fields = 'id'
+    # def get_shop(self,id):
+    #     print("imen")
+    #     try:
+    #         shop = Shop.objects.get(id=id)
+    #         print('hello')
+    #     except shop.DoesNotExist:
+    #         return HTTPResponse(status=status.HTTP_404_NOT_FOUND)
+
+    def get(self,request,id):
+        shop = Shop.objects.get(id=id)
+        serializer = ShopSerializer(shop)
+        return Response(serializer.data,status = status.HTTP_200_OK)
+
+    def put(self,request,id):
+        shop = Shop.objects.get(id=id)
+        serializer = ShopSerializer(shop,data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
+    def delete(self,request,id):
+        shop = Shop.objects.get(id=id)
+        shop.delete()
+        return Response(status = status.HTTP_204_NO_CONTENT)
+
+class productAPIView(views.APIView):
+    def get(self,request):
+        prod = product.objects.all()
+       # for product in shop.products.all():
+        serializer = ProductSerializer(prod,many = True)
+        return Response(serializer.data,status = status.HTTP_200_OK)
+
+
+    def post(self,request):
+        serializer = ProductSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+        
+
+class ProductUpdateAPIView(views.APIView):
+    lookup_fields = 'id'
+    def get(self,request,id):
+        prod= product.objects.get(id=id)
+        serializer = ProductSerializer(prod)
+        return Response(serializer.data, status = status.HTTP_200_OK)
+
+    def put(self,request,id):
+        prod = product.objects.get(id=id)
+        serializer =ProductSerializer(prod,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status.HTTP_200_OK)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request , id):
+        prod = product.objects.get(id=id)
+        prod.delete()
+        return Response(status= status.HTTP_204_NO_CONTENT)
+class ShopProductAPIView(views.APIView):
+
+    def get(self,request,id):
+        #products = ProductSerializer(many = True)
+        try:
+            e = Shop.objects.get(id=id)
+            h=e.products.all()
+            prod = ProductSerializer(h,many =True)
+            return  Response(prod.data , status=status.HTTP_200_OK)
+        except Shop.DoesNotExist:
+            return Response(status = status.HTTP_404_NOT_FOUND)
+
+
+
+# ************************* !!!!!!!!!!!!!!!! **********************************
+
+
+    def post(self,request,id):
+        e = Shop.objects.get(id=id)
+        print(e, "hello")
+        serializer = ProductSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            print(serializer.data)
+            e.add(serializer.data[id])
+            return  Response(serializer.data , status=status.HTTP_200_OK)
+
+        
+# ************************* !!!!!!!!!!!!!!!! **********************************
+    
+
+    def put(self,request,id,pk):
+     
+            e = Shop.objects.get(id=id)
+            h=e.products.get(pk=pk)
+            serializer = ProductSerializer(h,data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return  Response(serializer.data , status=status.HTTP_200_OK)
+
+
+    def delete(self,request,id,pk):
+        e = Shop.objects.get(id=id)
+        h=e.products.get(pk=pk)
+        h.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# class ProductShopsAPIView(views.APIView):
+    
+#     def get(self,request,id):
+#         products= product.objects.get(id=id)
+#         print(products)
+#         # h=e.Shop().first()
+#         # serializer = ShopSerializer(h)
+#         return Response(products, status = status.HTTP_200_OK)
+    
+    
+
+class membreAPIView(views.APIView):
+    lookup_fields = 'id'
+    def get(self,request,id):
+        user= User.objects.get(id=id)
+        membres = user.membre.all()
+        serializer = UserSerializer(membres, many = True)
+        return Response(serializer.data , status=status.HTTP_200_OK)
+
+
+    def post(self,request,id):
+        return Response(status=status.HTTP_201_CREATED)
+    
+
+class membreUpdateAPIView(views.APIView):
+    def get(self,request,id,pk):
+
+        user= User.objects.get(id=id)
+        membr = user.membre.get(pk=pk)
+        serializer = UserSerializer(membr)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+
+
+    def put(self,request,id,pk):
+        e = User.objects.get(id=id)
+        membres=e.membre.get(pk=pk)
+        serializer = UserSerializer(membres,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return  Response(serializer.data , status=status.HTTP_200_OK)
+
+
+    def delete(self,request,id,pk):
+        e=User.objects.get(id=id)
+        membre = e.membre.get(pk=pk)
+        membre.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+

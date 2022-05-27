@@ -1,8 +1,10 @@
+from pyexpat import model
+from pkg_resources import require
 from rest_framework.exceptions import APIException
 from asyncio.log import logger
 from http.client import OK
-from .models import User
-from rest_framework import serializers , status
+from .models import User, Shop, product
+from rest_framework import serializers 
 from django.contrib.auth import authenticate
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
@@ -23,12 +25,8 @@ from django.utils.encoding import smart_str,force_str , smart_bytes ,DjangoUnico
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 
-
 class RegisterSerializer(serializers.ModelSerializer):
   
-    # password = serializers.CharField(
-    #     max_length=68,write_only=True)
-
     class Meta:
         model= User
         fields=['email','username','password']
@@ -49,7 +47,10 @@ class RegisterSerializer(serializers.ModelSerializer):
             return attrs
 
         def create(self,validated_data):
-            return User.objects.create_user(**validated_data)
+            user = User.objects.create_user(**validated_data)
+            return user
+
+        
 
 class EmailVerificationSerializer(serializers.ModelSerializer):
     token = serializers.CharField(max_length=555)
@@ -58,12 +59,10 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
         model=User
         fields=['token']
 
-from rest_framework import serializers
-#class LoginSerializer(serializers.ModelSerializer):
-    
+
 class LoginSerializer(serializers.Serializer):    
-    email=serializers.EmailField(max_length=255,min_length=4)
-    password = serializers.CharField(max_length=68, min_length=6, write_only=True)
+    email=serializers.EmailField()
+    password = serializers.CharField()
 
     def get_tokens(self,user):
         user = user
@@ -135,7 +134,27 @@ class SetNewPasswordSerializer(serializers.Serializer):
 
 
 
+class UserSerializer(serializers.ModelSerializer):
+    """
+    user detail serializer
+    """
+    class Meta :
+        model = User
+        fields = ['id','username','email','first_name','last_name','phone','image','address','membre']
+        depth = 1
 
-    
-    
+
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = product
+        fields = ['id','name_product','price_product']
        
+class ShopSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Shop
+        fields = ['id','name_shop','email_shop','address_shop','products']
+        depth = 1
+    

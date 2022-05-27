@@ -208,3 +208,28 @@ EMAIL_HOST_PASSWORD='13638770Ii'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
+
+"""
+from api.permissions import IsAdmin 
+from rest_frameork.permissions import AllowAny , isAuthenticated , DjangoModelPermissions
+
+ADMIN_PERMISSIONS =[
+    IsAutheticated ,
+    IsAdmin
+]
+
+STANDARD_PERMISSIONS = [
+    IsAuthenticated,
+    DjangoModelPermissions
+]
+
+CONSUMER_PERMISSIONS = [
+    IsAuthenticated
+]
+
+UNPROTECTED =[
+    AllowAny
+]
+
+"""
