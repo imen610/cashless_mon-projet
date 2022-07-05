@@ -149,13 +149,13 @@ class UserSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = product
-        fields = ['id','name_product','price_product']
+        fields = ['id','name_product','price_product','image_product']
        
 class ShopSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Shop
-        fields = ['id','name_shop','email_shop','address_shop','products']
+        fields = ['id','name_shop','email_shop','address_shop','products','image_shop']
         depth = 1
     
 class BraceletSerializer(serializers.ModelSerializer):

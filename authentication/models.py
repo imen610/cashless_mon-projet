@@ -1,3 +1,4 @@
+from django.utils import timezone
 from operator import truediv
 from django.db import models
 #from django.db.models.signals import post_save
@@ -10,6 +11,8 @@ from django.forms import CharField, IntegerField
 from django.urls import is_valid_path
 from rest_framework_simplejwt.tokens import RefreshToken
 from cashless import settings
+import uuid
+from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
@@ -51,10 +54,12 @@ class User(AbstractBaseUser,PermissionsMixin):
     first_name= models.CharField(max_length=100,null=True,blank=True)
     last_name=models.CharField(max_length=100,null=True,blank=True)
     phone=models.IntegerField(null=True,blank=True)
-    image= models.CharField(max_length=100000, default=None,null=True,blank=True)
+    image= models.ImageField(null = True, blank=True)
     address=models.CharField(max_length=255, default=None,null=True,blank=True)
     birthday = models.DateField(default=None,null=True,blank=True)
-    #id_member = IntegerField(null=True,blank=True)
+    is_admin = models.BooleanField(default=False)
+    is_membre = models.BooleanField(default=False)
+    #id_member = IntegerField(null=True,blank=True) 
     USERNAME_FIELD='email'
     REQUIRED_FIELDS=['username']
 
@@ -76,8 +81,7 @@ class User(AbstractBaseUser,PermissionsMixin):
 class product(models.Model):
     name_product = models.CharField(max_length=255,default = None,null =True)
     price_product = models.FloatField(default = None,null =True)
-
-
+    image_product = models.ImageField(null = True, blank=True)
     def __str__(self):
         return f"{self.name_product}"
 
@@ -86,6 +90,7 @@ class Shop(models.Model):
     name_shop=models.CharField(max_length=255,default = None,null =True)
     address_shop=models.CharField(max_length=255 , default = None,null =True)
     email_shop= models.CharField(max_length=255,default = None,null =True)
+    image_shop = models.ImageField(null = True, blank=True)
 
     def __str__(self):
         return f"{self.id}"
@@ -117,6 +122,13 @@ class Bracelet(models.Model):
     shop = models.OneToOneField(Shop,on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=4, decimal_places=3)
     maximum_amount = models.DecimalField(max_digits=4, decimal_places=3)
+    creation_date = models.DateTimeField(verbose_name=_('creation date'), null = True)
+   # checked_out = models.BooleanField(default=False, verbose_name=_('checked out'))
+
+    class Meta:
+        verbose_name = _('cart')
+        verbose_name_plural = _('carts')
+        ordering = ('-creation_date',)
 
 
     def __str__(self):
@@ -124,3 +136,36 @@ class Bracelet(models.Model):
 
 
     
+
+class Wallet(models.Model):
+    uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
+    balance = models.DecimalField( max_digits=4, decimal_places=3)
+    currency = models.CharField(max_length=50, default='DT')
+    account_number = models.CharField(max_length=100)
+    phone_number = models.CharField( max_length=15)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+
+class card(models.Model):
+
+    bank = models.CharField( max_length=100)
+    amount = models.DecimalField( max_digits=4, decimal_places=3, null = True)
+
+class WalletTransaction(models.Model):
+
+    TRANSACTION_TYPES = (
+        ('receive', 'receive'),
+        ('transfer', 'transfer'),
+        ('payment', 'payment'),
+    )
+    wallet = models.ForeignKey(Wallet, null=True, on_delete=models.CASCADE)
+    transaction_type = models.CharField(
+        max_length=200, null=True,  choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=4, decimal_places=3, null = True)
+    timestamp = models.DateTimeField(default=timezone.now, null=True)
+    status = models.CharField(max_length=100, default="pending")
+    paystack_payment_reference = models.CharField(max_length=100, default='', blank=True)
+
+    def __str__(self):
+        return self.wallet.user.__str__()

@@ -26,5 +26,7 @@ urlpatterns=[
     path('usermem/<int:id>/<int:pk>/',views.membreUpdateAPIView.as_view(),name='membres_update_get_delete'),
    # path('shopproducts/<int:id>/',views.ProductShopsAPIView.as_view(),name='shop_product_id'),
     path('bracelet/list/',views.BraceletAPIView.as_view(),name='bracelet_list'),
+    path('shop/<int:pk>/',views.ShopDetail.as_view(),name='detail_shops'),
+    path('product/<int:id>/',views.ProductDetail.as_view(),name='detail_products'),
 
    ]

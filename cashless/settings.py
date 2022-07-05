@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 import datetime
 from datetime import timedelta
@@ -233,3 +234,12 @@ UNPROTECTED =[
 ]
 
 """
+
+STATIC_URL= '/static/'
+
+MEDIA_URL = '/images/'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR,'static')
+]
+MEDIA_ROOT = os.path.join(BASE_DIR,'static/images')

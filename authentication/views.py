@@ -169,6 +169,15 @@ class UserDetail(RetrieveUpdateDestroyAPIView):
     queryset = User
     serializer_class = UserSerializer
 
+class ShopDetail(RetrieveUpdateDestroyAPIView):
+    queryset = Shop
+    serializer_class = ShopSerializer
+
+
+class ProductDetail(RetrieveUpdateDestroyAPIView):
+    queryset = product
+    serializer_class = ProductSerializer
+    
 
 class ShopAPIView(views.APIView):
 
