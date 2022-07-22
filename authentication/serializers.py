@@ -1,9 +1,13 @@
 from pyexpat import model
+import uuid
 from pkg_resources import require
+import requests
 from rest_framework.exceptions import APIException
 from asyncio.log import logger
 from http.client import OK
-from .models import Bracelet, User, Shop, product
+
+from cashless import settings
+from .models import User, Shop, Wallet,product
 from rest_framework import serializers 
 from django.contrib.auth import authenticate
 from django.contrib import auth
@@ -23,32 +27,73 @@ from cashless.utils import Util
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_str,force_str , smart_bytes ,DjangoUnicodeDecodeError
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.db.models import Sum
+
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-  
     class Meta:
-        model= User
-        fields=['email','username','password']
-
-        extra_kwargs={
-            'password':{'write_only':True}
+        model = User
+        fields = ( "email", "username", "phone_number", "password")
+        extra_kwargs = {
+            "password": {
+                "write_only": True
+            }
         }
 
+    def create(self, validated_data):
+       
+        user = models.User.objects.create(
+            username = validated_data["username"],
+            phone_number = validated_data["phone_number"],
+            email = validated_data["email"],
+            
+        )
 
-        def validate(self,attrs):
-            email = attrs.get('email','')
-            username = attrs.get('username','')
+        user.set_password(validated_data["password"])
+        user.save()
+        x=uuid.uuid4().int
+        print(x)
 
-            if not username.isalnum():
-                raise serializers.ValidationError(
-                    'the username should only contain alphanumeric characters'
-                )
-            return attrs
+        obj = Wallet(wallet_id=x, balance=0,account=user, is_disabled=False)
+        obj.save()
 
-        def create(self,validated_data):
-            user = User.objects.create_user(**validated_data)
-            return user
+        return user 
+
+
+class VerifySerializer(serializers.Serializer):
+    otp = serializers.CharField(max_length=60)
+
+
+# class RegisterSerializer(serializers.ModelSerializer):
+  
+#     class Meta:
+#         model= User
+#         fields=['email','username','password']
+
+#         extra_kwargs={
+#             'password':{'write_only':True}
+#         }
+
+
+#         def validate(self,attrs):
+#             email = attrs.get('email','')
+#             username = attrs.get('username','')
+
+#             if not username.isalnum():
+#                 raise serializers.ValidationError(
+#                     'the username should only contain alphanumeric characters'
+#                 )
+#             return attrs
+
+#         def create(self,validated_data):
+#             user = User.objects.create_user(**validated_data)
+#             # x=uuid.uuid4().int
+#             # print(x)
+
+#             # obj = Wallet(wallet_id=x, balance=0,account=user, is_disabled=False)
+#             # obj.save()
+#             # return user
 
         
 
@@ -69,7 +114,7 @@ class LoginSerializer(serializers.Serializer):
 
         return {
             'refresh': user.tokens()['refresh'],
-            'access': user.tokens()['access']
+            'access': user.tokens()['access'],
         }
     def save(self):
         email = self.validated_data['email']
@@ -84,6 +129,7 @@ class LoginSerializer(serializers.Serializer):
             msg={
                 "username":user.username,
                 "email":user.email,
+                "image":user.image,
                 "token":token
             }
             
@@ -140,8 +186,9 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta :
         model = User
-        fields = ['id','username','email','first_name','last_name','phone','image','address','membre']
+        fields = ['id','username','email','first_name','last_name','phone_number','image','address','membre']
         depth = 1
+        
 
 
 
@@ -157,9 +204,85 @@ class ShopSerializer(serializers.ModelSerializer):
         model = Shop
         fields = ['id','name_shop','email_shop','address_shop','products','image_shop']
         depth = 1
-    
-class BraceletSerializer(serializers.ModelSerializer):
+  
+from rest_framework import serializers
+from . import models 
+
+
+class WalletSerializer(serializers.ModelSerializer):
     class Meta:
-        model  = Bracelet
-        fields = ['id','user','shop','amount','maximum_amount']
+        model = models.Wallet
+        fields = ("wallet_id", "is_disabled", "balance")
+        extra_kwargs = {
+            "wallet_id": {
+                "read_only": True
+            },
+
+            "is_disabled": {
+                "read_only": True
+            },
+
+            "balance": {
+                "read_only": True
+            }
+        }
+
+
+class TransactionHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Transaction
+        fields = ("transaction_id", "amount", "timestamp", "to", "type","account")
         depth = 1
+  
+        extra_kwargs = {
+            "transaction_id": {
+                "read_only": True
+            },
+
+            "amount": {
+                "read_only": True
+            }, 
+
+            "timestamp": {
+                "read_only": True
+            },
+
+            "to": {
+                "read_only": True 
+            }
+        }
+        
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Payment
+        fields = ("to_acct", "amount", )
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Payment
+        fields = ("to_acct", "amount", )
+        
+        
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
+class TokenObtainLifetimeSerializer(TokenObtainPairSerializer):
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        refresh = self.get_token(self.user)
+        data['lifetime'] = int(refresh.access_token.lifetime.total_seconds())
+        return data
+
+
+class TokenRefreshLifetimeSerializer(TokenRefreshSerializer):
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        refresh = RefreshToken(attrs['refresh'])
+        data['lifetime'] = int(refresh.access_token.lifetime.total_seconds())
+        return data
+

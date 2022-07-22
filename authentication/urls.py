@@ -1,19 +1,20 @@
 from unicodedata import name
 from django.urls import path 
 from . import views
-from rest_framework_simplejwt.views import (
-    TokenRefreshView
-)
+
 
 
 urlpatterns=[
-    path('register/',views.RegisterView.as_view(),name="register"),
-    path('email-verify',views.verifyEmail.as_view(),name="email-verify"),
-    path('login/',views.LoginAPIView.as_view(),name='login'),
-    path('token/refresh/',TokenRefreshView.as_view(),name='token_refresh'),
-    path('request-reset-email',views.RequestPasswordRestEmail.as_view(),name='request-reset-email'),
-    path('password-reset/<uidb64>/<token>/',views.PasswordTokenCheckAPI.as_view(),name='password-reset-confirm'),
-    path('password-reset-complete',views.SetNewPasswordAPIView.as_view(),name='password-reset-complete'),
+    path("sign-up/", views.RegisterAPIView.as_view(), name="register"),
+    path("verify/", views.VerifyAPIView.as_view(), name="verify"),
+    path('login/', views.TokenObtainPairView.as_view(), name="token_obtain_view"),
+    # path('register/',views.RegisterView.as_view(),name="register"),
+    # path('email-verify',views.verifyEmail.as_view(),name="email-verify"),
+    # path('login/',views.LoginAPIView.as_view(),name='login'),
+    # path('token/refresh/',TokenRefreshView.as_view(),name='token_refresh'),
+    # path('request-reset-email',views.RequestPasswordRestEmail.as_view(),name='request-reset-email'),
+    # path('password-reset/<uidb64>/<token>/',views.PasswordTokenCheckAPI.as_view(),name='password-reset-confirm'),
+    #path('password-reset-complete',views.SetNewPasswordAPIView.as_view(),name='password-reset-complete'),
     path('users/',views.UserList.as_view(),name='list_users'),
     path('users/<int:pk>/',views.UserDetail.as_view(),name='detail_users'),
     path('shops/',views.ShopAPIView.as_view(),name='shops'),
@@ -25,8 +26,15 @@ urlpatterns=[
     path('usermem/<int:id>/',views.membreAPIView.as_view(),name='membres_liste'),
     path('usermem/<int:id>/<int:pk>/',views.membreUpdateAPIView.as_view(),name='membres_update_get_delete'),
    # path('shopproducts/<int:id>/',views.ProductShopsAPIView.as_view(),name='shop_product_id'),
-    path('bracelet/list/',views.BraceletAPIView.as_view(),name='bracelet_list'),
     path('shop/<int:pk>/',views.ShopDetail.as_view(),name='detail_shops'),
     path('product/<int:id>/',views.ProductDetail.as_view(),name='detail_products'),
+    path("my-wallet/", views.AccountWalletView.as_view(), name="wallet"),
+    path("transactions/", views.TransactionsListView.as_view(), name="transactions"),
+    path("pay/", views.MakePaymentView.as_view(), name="pay"),
+    path("transfer/", views.MakeTransactionsView.as_view(), name="transfer"),
+    path("transfer-success/", views.SuccessView.as_view(), name="success"),
+    path("current/", views.CurrentUserView.as_view(), name='test'),
 
    ]
+
+

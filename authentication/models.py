@@ -1,48 +1,68 @@
+import binascii
+import os
 from django.utils import timezone
-from operator import truediv
 from django.db import models
-#from django.db.models.signals import post_save
-# Create your models here.
 from django.db import models
 from django.contrib.auth.models import User
-# Create your models here.
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
 from django.forms import CharField, IntegerField
-from django.urls import is_valid_path
 from rest_framework_simplejwt.tokens import RefreshToken
 from cashless import settings
 import uuid
 from django.utils.translation import gettext_lazy as _
-
+from django.core.validators import MinLengthValidator, MaxLengthValidator
+import random
 
 class UserManager(BaseUserManager):
+    def create_user(self, first_name, last_name, email, username, phone_number, password=None):
+        email = self.normalize_email(email)
+        account = self.model(first_name=first_name, last_name=last_name, email=email, username=username, phone_number=phone_number)
 
-    def create_user(self,username,email,password=None):
+        account.set_password(password)
+        account.save(using=self._db)
+        
 
-        if username is None:
-            raise TypeError('Users should have a userneme')
-        if email is None:
-            raise TypeError('Users should have an email')
-        user=self.model(username=username,email=self.normalize_email(email))
-        user.set_password(password)
-        user.save()
+        return account 
+
+    def create_superuser(self, first_name, last_name, username, email, phone_number, password):
+        user = self.create_user(first_name, last_name, email, username, phone_number, password)
+        user.is_staff = True 
+        user.is_superuser = True
+
+        user.save(using=self._db)
         return user
+    # def create_user(self,username,email,password=None):
+
+    #     if username is None:
+    #         raise TypeError('Users should have a userneme')
+    #     if email is None:
+    #         raise TypeError('Users should have an email')
+    #     user=self.model(username=username,email=self.normalize_email(email))
+    #     user.set_password(password)
+    #     user.save()
+    #     x=uuid.uuid4().int
+    #     print(x)
+
+    #     obj = Wallet(wallet_id=x, balance=0,account=user, is_disabled=False)
+    #     obj.save()
+    #     return user
 
 
-    def create_superuser(self,username,email,password=None):
+    # def create_superuser(self,username,email,password=None):
 
-        if password is None:
-            raise TypeError('Password should not be none')
-        user=self.create_user(username,email,password)
-        user.is_superuser=True
-        user.is_staff=True
-        user.save()
+    #     if password is None:
+    #         raise TypeError('Password should not be none')
+    #     user=self.create_user(username,email,password)
+    #     user.is_superuser=True
+    #     user.is_staff=True
+    #     user.save()
 
-        return user
+    #     return user
 
     
 
 class User(AbstractBaseUser,PermissionsMixin):
+    account_id = models.CharField(max_length=7, validators=[MinLengthValidator(7), MaxLengthValidator(7)], default=random.randint(1111111, 9999999))
     membre = models.ManyToManyField(to=settings.AUTH_USER_MODEL,null = True)
     username=models.CharField(max_length=255,unique=True,db_index=True)
     email=models.EmailField(max_length=255,unique=True,db_index=True)
@@ -53,13 +73,16 @@ class User(AbstractBaseUser,PermissionsMixin):
     updated_at=models.DateTimeField(auto_now=True)
     first_name= models.CharField(max_length=100,null=True,blank=True)
     last_name=models.CharField(max_length=100,null=True,blank=True)
-    phone=models.IntegerField(null=True,blank=True)
+    phone_number = models.CharField(max_length=17, unique=True, null=True)
     image= models.ImageField(null = True, blank=True)
     address=models.CharField(max_length=255, default=None,null=True,blank=True)
     birthday = models.DateField(default=None,null=True,blank=True)
     is_admin = models.BooleanField(default=False)
     is_membre = models.BooleanField(default=False)
-    #id_member = IntegerField(null=True,blank=True) 
+    verification_code = models.CharField(default=f"{random.randint(111111,999999)}", max_length=9)
+    tax_id = models.CharField(max_length=60, null=True)
+    
+    
     USERNAME_FIELD='email'
     REQUIRED_FIELDS=['username']
 
@@ -95,77 +118,85 @@ class Shop(models.Model):
     def __str__(self):
         return f"{self.id}"
 
-        
 
-    
-
-# class Album(models.Model):
-#     album_name = models.CharField(max_length=100)
-#     artist = models.CharField(max_length=100)
-
-# class Track(models.Model):
-#     album = models.ForeignKey(Album, related_name='tracks', on_delete=models.CASCADE)
-#     order = models.IntegerField()
-#     title = models.CharField(max_length=100)
-#     duration = models.IntegerField()
-
-#     class Meta:
-#         unique_together = ['album', 'order']
-#         ordering = ['order']
-
-#     def __str__(self):
-#         return '%d: %s' % (self.order, self.title)
+def generate_wallet_id():
+    while True:
+        _id = binascii.b2a_hex(os.urandom(7))
+        if Wallet.objects.filter(wallet_id=_id).count() == 0:
+            break 
+    return _id 
 
 
-class Bracelet(models.Model):
-    user = models.OneToOneField(User,on_delete=models.CASCADE)
-    shop = models.OneToOneField(Shop,on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=4, decimal_places=3)
-    maximum_amount = models.DecimalField(max_digits=4, decimal_places=3)
-    creation_date = models.DateTimeField(verbose_name=_('creation date'), null = True)
-   # checked_out = models.BooleanField(default=False, verbose_name=_('checked out'))
+def generate_transaction_id():
+    while True:
+        trx_id = binascii.b2a_hex(os.urandom(14))
+        if Transaction.objects.filter(transaction_id=trx_id).count() == 0:
+            break 
 
-    class Meta:
-        verbose_name = _('cart')
-        verbose_name_plural = _('carts')
-        ordering = ('-creation_date',)
-
-
-    def __str__(self):
-        return f"{self.id}"
-
-
-    
+    return trx_id 
 
 class Wallet(models.Model):
-    uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
-    balance = models.DecimalField( max_digits=4, decimal_places=3)
-    currency = models.CharField(max_length=50, default='DT')
-    account_number = models.CharField(max_length=100)
-    phone_number = models.CharField( max_length=15)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
+    #id = models.IntegerField(primary_key=True, default= 00)
+    account = models.ForeignKey(User,on_delete=models.CASCADE, null =True)
+    wallet_id=models.CharField(max_length=17, validators=[MinLengthValidator(17), MaxLengthValidator(17)], default=generate_wallet_id, unique=True)
+    #shop = models.ForeignKey(Shop,on_delete=models.CASCADE , null = True)
+    creation_date = models.DateTimeField(verbose_name=_('creation date'), null = True)
+    is_disabled = models.BooleanField(default=False)
+    balance = models.DecimalField(max_digits=10, decimal_places=3, default=0.000)
+   
 
-class card(models.Model):
-
-    bank = models.CharField( max_length=100)
-    amount = models.DecimalField( max_digits=4, decimal_places=3, null = True)
-
-class WalletTransaction(models.Model):
-
-    TRANSACTION_TYPES = (
-        ('receive', 'receive'),
-        ('transfer', 'transfer'),
-        ('payment', 'payment'),
-    )
-    wallet = models.ForeignKey(Wallet, null=True, on_delete=models.CASCADE)
-    transaction_type = models.CharField(
-        max_length=200, null=True,  choices=TRANSACTION_TYPES)
-    amount = models.DecimalField(max_digits=4, decimal_places=3, null = True)
-    timestamp = models.DateTimeField(default=timezone.now, null=True)
-    status = models.CharField(max_length=100, default="pending")
-    paystack_payment_reference = models.CharField(max_length=100, default='', blank=True)
 
     def __str__(self):
-        return self.wallet.user.__str__()
+        return self.account.email
+
+
+class Transaction(models.Model):
+    account = models.ForeignKey(User, on_delete=models.CASCADE)
+    transaction_id = models.CharField(max_length=10, validators=[MinLengthValidator(10), MaxLengthValidator(10)], default=generate_transaction_id)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    to = models.CharField(max_length=60)
+    TYPE_CHOICES = (
+        ("outflow", "Outflow"),
+        ("inflow", "Inflow"),
+    )
+    type = models.CharField(
+        max_length=10, choices=TYPE_CHOICES, default="inflow"
+    )
+    
+
+
+    def __str__(self):
+        return self.account.email 
+    
+
+
+class Payment(models.Model):
+    from_acct = models.ForeignKey(User, on_delete=models.CASCADE)
+    to_acct = models.CharField(max_length=60)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return self.from_acct.email 
+
+
+class article_vendues(models.Model):
+    shop = models.ForeignKey(Shop,on_delete=models.CASCADE)
+    product =models.ForeignKey(product,on_delete=models.CASCADE)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+
+
+class shop_account(models.Model):
+    account = models.ForeignKey(Shop, on_delete=models.CASCADE)
+    wallet_id = models.CharField(max_length=17, validators=[MinLengthValidator(17), MaxLengthValidator(17)], default=generate_wallet_id, unique=True)
+    is_disabled = models.BooleanField(default=False)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self) :
+        return self.account.email
+
+
+class Blocked_Product(models.Model):
+    product = models.ForeignKey(product,on_delete=models.CASCADE,null= True)
+    user  = models.ForeignKey(User,on_delete=models.CASCADE)
+    blocked = models.BooleanField(default=False)

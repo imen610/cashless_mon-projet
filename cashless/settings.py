@@ -136,7 +136,7 @@ WSGI_APPLICATION = 'cashless.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': "cashless",
+        'NAME': "drfpay",
         'USER':"root",
         "PASSWORD":""
         }
