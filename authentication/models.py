@@ -163,6 +163,20 @@ class Transaction(models.Model):
     type = models.CharField(
         max_length=10, choices=TYPE_CHOICES, default="inflow"
     )
+
+class TransactionShop(models.Model):
+    account = models.ForeignKey(User, on_delete=models.CASCADE)
+    transaction_id = models.CharField(max_length=10, validators=[MinLengthValidator(10), MaxLengthValidator(10)], default=generate_transaction_id)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    to = models.CharField(max_length=60)
+    TYPE_CHOICES = (
+        ("outflow", "Outflow"),
+        ("inflow", "Inflow"),
+    )
+    type = models.CharField(
+        max_length=10, choices=TYPE_CHOICES, default="Outflow"
+    )
     
 
 

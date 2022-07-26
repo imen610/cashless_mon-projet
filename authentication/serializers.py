@@ -7,7 +7,7 @@ from asyncio.log import logger
 from http.client import OK
 
 from cashless import settings
-from .models import User, Shop, Wallet,product
+from .models import User, Shop, Wallet,product, shop_account
 from rest_framework import serializers 
 from django.contrib.auth import authenticate
 from django.contrib import auth
@@ -204,7 +204,33 @@ class ShopSerializer(serializers.ModelSerializer):
         model = Shop
         fields = ['id','name_shop','email_shop','address_shop','products','image_shop']
         depth = 1
-  
+        
+    def create(self, validated_data):
+       
+
+# products=models.ManyToManyField(product)
+#     name_shop=models.CharField(max_length=255,default = None,null =True)
+#     address_shop=models.CharField(max_length=255 , default = None,null =True)
+#     email_shop= models.CharField(max_length=255,default = None,null =True)
+#     image_shop
+
+
+        shop = models.Shop.objects.create(
+            name_shop = validated_data["name_shop"],
+            email_shop = validated_data["email_shop"],
+            address_shop = validated_data["address_shop"],
+            
+        )
+
+      
+        shop.save()
+        x=uuid.uuid4().int
+        print(x)
+
+        obj = shop_account(wallet_id=x, balance=0,account=shop, is_disabled=False)
+        obj.save()
+
+        return shop 
 from rest_framework import serializers
 from . import models 
 
@@ -251,7 +277,31 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
                 "read_only": True 
             }
         }
-        
+
+class TransactionHistoryShopSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.TransactionShop
+        fields = ("transaction_id", "amount", "timestamp", "to", "type","account")
+        depth = 1
+  
+        extra_kwargs = {
+            "transaction_id": {
+                "read_only": True
+            },
+
+            "amount": {
+                "read_only": True
+            }, 
+
+            "timestamp": {
+                "read_only": True
+            },
+
+            "to": {
+                "read_only": True 
+            }
+        }
+                
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:

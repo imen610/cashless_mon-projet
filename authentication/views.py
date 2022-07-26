@@ -18,7 +18,7 @@ from cashless.settings import SECRET_KEY
 from  .serializers import  ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UserSerializer
 from rest_framework.response import Response 
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Payment, Transaction, User, Shop, Wallet, product, shop_account
+from .models import Payment, Transaction, TransactionShop, User, Shop, Wallet, product, shop_account
 from cashless.utils import Util
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
@@ -247,7 +247,7 @@ class TokenRefreshView(TokenViewBase):
 class UserList(ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
 
 class UserDetail(RetrieveUpdateDestroyAPIView):
@@ -257,7 +257,7 @@ class UserDetail(RetrieveUpdateDestroyAPIView):
 class ShopDetail(RetrieveUpdateDestroyAPIView):
     queryset = Shop
     serializer_class = ShopSerializer
-    permission_classes = [IsAuthenticated]
+   # permission_classes = [IsAuthenticated]
 
 
 
@@ -269,7 +269,7 @@ class ProductDetail(RetrieveUpdateDestroyAPIView):
     
 
 class ShopAPIView(views.APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
 
     
@@ -282,13 +282,6 @@ class ShopAPIView(views.APIView):
        
         serializer=ShopSerializer(data=request.data)
         if serializer.is_valid():
-            # shop = Shop()
-            # x=uuid.uuid4().int
-            # print(x)
-            # shop_account.objects.create(
-            #     wallet_id=x, balance=0,account=self.request.shop, is_disabled=False
-
-            # )
             serializer.save()
             return Response(serializer.data,status=status.HTTP_201_CREATED)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
@@ -505,6 +498,45 @@ class AccountWalletView(APIView):
                 "balance": float(wallet_data['balance'])
             })
 
+class AccountWalletMemberView(APIView):
+    serializer_class = serializers.WalletSerializer
+    permission_classes = [IsAuthenticated]
+
+    # def get(self, request):
+       
+    #     obj = Wallet(wallet_id='0958', balance=0,account=request.user, is_disabled=False)
+    #     obj.save()
+    #     print('request.user',request.user)
+    #     wallet_data2 = Wallet.objects.filter(
+    #         account=8004867)
+    #     print('wallet_data2',wallet_data2)
+
+    #     wallet_data='Usama'
+    #     #if wallet_data["is_disabled"] == True:
+    #     return Response({
+    #         "account status": "blocked",
+    #         "wallet id": wallet_data,
+    #         "message": "Your account has been disabled, contact support"
+    #     })
+
+    def get(self, request,pk):
+        print('request.user',request.user.id)
+        wallet_data = Wallet.objects.filter(account__id=pk).values()[0]
+
+        if wallet_data["is_disabled"] == True:
+            return Response({
+                "account status": "blocked",
+                "wallet id": wallet_data['wallet_id'],
+                "message": "Your account has been disabled, contact support"
+            })
+
+        else:
+            return Response({
+                "account status": "enabled",
+                "wallet id": wallet_data['wallet_id'],
+                "balance": float(wallet_data['balance'])
+            })
+
 class SuccessView(APIView):
     def get(self, request):
         return Response({
@@ -523,6 +555,35 @@ class TransactionsListView(ListAPIView):
         my_trans = Transaction.objects.filter(account = self.request.user)
         my_trans.update(type='Outflow')
         my_trans2 = Transaction.objects.filter(to = self.request.user.username)
+        my_trans2.update(type='Inflow')
+        print(account_transactions)
+        serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+  
+
+class TransactionsShopListView(ListAPIView):
+    serializer_class = serializers.TransactionHistoryShopSerializer
+    queryset = TransactionShop.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        print(self.request.user.username)
+        account_transactions = TransactionShop.objects.filter(account = self.request.user)
+        serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+  
+  
+class TransactionsMemberListView(ListAPIView):
+    serializer_class = serializers.TransactionHistorySerializer
+    queryset = Transaction.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request,pk,username):
+        print(self.request.user.username)
+        account_transactions = Transaction.objects.filter(Q(to = username) |Q(account = pk) )
+        my_trans = Transaction.objects.filter(account = pk)
+        my_trans.update(type='Outflow')
+        my_trans2 = Transaction.objects.filter(to = username)
         my_trans2.update(type='Inflow')
         print(account_transactions)
         serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
@@ -598,9 +659,16 @@ class MakePaymentShopView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
             val_data = dict(serializer.validated_data)
+            # print(val_data['to_acct'])
+            # sender_acct = Wallet.objects.get(account=self.request.user)
+            # recv_account = Shop.objects.get(name_shop=val_data['to_acct'])
+            # print(recv_account)
+            # print(sender_acct)
 
             if Shop.objects.filter(name_shop=val_data['to_acct']).count() == 1:
-                if val_data['to_acct'] == request.shop.name_shop:
+                
+                if val_data['to_acct'] == self.request.user:
+                    print(val_data['to_acct'])
                     return Response({
                         "alert": "You can't send money to yourself silly!"
                     }, status=status.HTTP_406_NOT_ACCEPTABLE)
@@ -609,6 +677,7 @@ class MakePaymentShopView(APIView):
                     amount = val_data['amount']
                     sender_acct = Wallet.objects.get(account=self.request.user)
                     recv_account = Shop.objects.get(name_shop=val_data['to_acct'])
+                    print(recv_account)
                     wallet_instance = shop_account.objects.get(account=recv_account)
 
                     if float(amount) > float(sender_acct.balance):
@@ -623,7 +692,7 @@ class MakePaymentShopView(APIView):
                         sender_acct.balance = float(sender_acct.balance) - float(val_data['amount'])
                         sender_acct.save()
 
-                        trx = Transaction.objects.create(
+                        trx = TransactionShop.objects.create(
                             account = request.user,
                             amount = amount,
                             to = val_data['to_acct']
