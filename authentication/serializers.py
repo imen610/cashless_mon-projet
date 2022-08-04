@@ -7,7 +7,7 @@ from asyncio.log import logger
 from http.client import OK
 
 from cashless import settings
-from .models import User, Shop, Wallet,product, shop_account
+from .models import Blocked_Product, User, Shop, Wallet, group,product, shop_account
 from rest_framework import serializers 
 from django.contrib.auth import authenticate
 from django.contrib import auth
@@ -53,10 +53,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(validated_data["password"])
         user.save()
         x=uuid.uuid4().int
+        y=uuid.uuid4().int
         print(x)
-
+       
         obj = Wallet(wallet_id=x, balance=0,account=user, is_disabled=False)
         obj.save()
+        grp =group(user=user,id_groupe=y,is_superuser = True, is_member =False)
+        grp.save()
+        
 
         return user 
 
@@ -186,7 +190,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta :
         model = User
-        fields = ['id','username','email','first_name','last_name','phone_number','image','address','membre']
+        fields = ['id','username','email','first_name','last_name','phone_number','image','address','membre','created_at']
         depth = 1
         
 
@@ -244,9 +248,9 @@ class WalletSerializer(serializers.ModelSerializer):
                 "read_only": True
             },
 
-            "is_disabled": {
-                "read_only": True
-            },
+            # "is_disabled": {
+            #     "read_only": True
+            # },
 
             "balance": {
                 "read_only": True
@@ -336,3 +340,30 @@ class TokenRefreshLifetimeSerializer(TokenRefreshSerializer):
         data['lifetime'] = int(refresh.access_token.lifetime.total_seconds())
         return data
 
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.group
+        fields = ("user", "id_groupe","is_superuser","is_member" )
+
+# class group(models.Model):
+#     user = models.ForeignKey(User,on_delete=models.CASCADE)
+#     id_groupe = models.CharField(max_length=4, validators=[MinLengthValidator(4), MaxLengthValidator(4)], default=generate_groupe_id, unique=True)
+#     is_superuser = models.BooleanField(default = False)
+#     is_member = models.BooleanField(default =False)
+
+class BlockedProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Blocked_Product
+        fields = ("product","user","blocked")
+
+
+
+class UpdateProductStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Blocked_Product
+        fields = ["blocked"]
+class updateWalletStatusSerializer(serializers.ModelSerializer):
+    class Meta  : 
+        model = Wallet
+        fields = ["is_disabled"]

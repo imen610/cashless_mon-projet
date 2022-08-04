@@ -1,10 +1,15 @@
 # Create your views here.
+from collections import Counter
 
 from cgitb import lookup
+import datetime
 from os import stat
 from re import S
 from urllib import response
 import uuid
+from django import http
+
+from pytz import timezone
 from urllib3 import HTTPResponse
 from authentication.utils.phone_verif import send_verification
 from cashless import settings
@@ -15,10 +20,10 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework.generics import ListCreateAPIView, ListAPIView
 from django.contrib.auth import get_user_model
 from cashless.settings import SECRET_KEY
-from  .serializers import  ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UserSerializer
+from  .serializers import  BlockedProductSerializer, GroupSerializer, ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UpdateProductStatusSerializer, UserSerializer, WalletSerializer, updateWalletStatusSerializer
 from rest_framework.response import Response 
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Payment, Transaction, TransactionShop, User, Shop, Wallet, product, shop_account
+from .models import Blocked_Product, Payment, Transaction, TransactionShop, User, Shop, Wallet, group, product, shop_account
 from cashless.utils import Util
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
@@ -410,6 +415,8 @@ class ShopProductAPIView(views.APIView):
     
 
 class membreAPIView(views.APIView):
+    queryset = group
+    serializer_class = GroupSerializer
     permission_classes = [IsAuthenticated]
 
     lookup_fields = 'id'
@@ -421,10 +428,41 @@ class membreAPIView(views.APIView):
 
     def post(self,request,id):
         e = User.objects.get(id=id)
-        print(e)
+        membres = e.membre.all()
+        gr = group.objects.get(user = id)
+        grp = group.objects.get(user = id)
+        ser = GroupSerializer(grp)
+        k=ser.data['id_groupe']
+        print(k)
+        for mem1 in membres:
+            for mem2 in membres:
+                if(mem1!=mem2):
+                    user1=User.objects.get(email= mem1.email)
+                    user2=User.objects.get(email= mem2.email)
+                    id1=mem1.id
+                    id2=mem2.id
+                    if(user1 !=user2):
+                        a = user1.membre.add(id2)
+                        a = user1.membre.add(e.id)
+                        a = user2.membre.add(e.id)
+                        a = user2.membre.add(id1)
+        # print(e)
         l = request.data['id']
+        print(l)
+        grp2 = group.objects.get(user = l)
+        ser2 = GroupSerializer(grp2)
+        t = ser2.data['id_groupe']
+        grp_user = group.objects.filter(id_groupe =t)
+        print(grp_user)
+        grp_user.update(is_superuser=False)
+        grp_user.update(is_member=True)
+        grp_user.update(id_groupe=k)
+       
+        print(ser2.data['id_groupe'])
+
         h=e.membre.add(l)
-        print(h)
+       
+        # print(h)
         return Response("member added with success",status=status.HTTP_201_CREATED)
     
 
@@ -551,7 +589,7 @@ class TransactionsListView(ListAPIView):
 
     def list(self, request):
         print(self.request.user.username)
-        account_transactions = Transaction.objects.filter(Q(to = self.request.user.username) |Q(account = self.request.user) )
+        account_transactions = Transaction.objects.filter(Q(to = self.request.user.username) |Q(account = self.request.user) ).order_by('-timestamp')
         my_trans = Transaction.objects.filter(account = self.request.user)
         my_trans.update(type='Outflow')
         my_trans2 = Transaction.objects.filter(to = self.request.user.username)
@@ -559,7 +597,80 @@ class TransactionsListView(ListAPIView):
         print(account_transactions)
         serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class TransactionsAdminDashListView(ListAPIView):
+    serializer_class = serializers.TransactionHistorySerializer
+    queryset = Transaction.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        print(self.request.user.username)
+        account_transactions = Transaction.objects.all().order_by('-timestamp')
+        my_trans = Transaction.objects.all()
+        my_trans.update(type='Inflow')
+        serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+     
+        x = serializer.data[5]['timestamp'][8]
+        y =serializer.data[5]['timestamp'][9]
+        d = x +y
+        day =int(d)
+        print(type(day))
+        print(d)
+       # day = 
+        dic = dict()
+        dic.update({'day':day,'day2':day})
+        print(dic)
+        return Response(serializer.data, status=status.HTTP_200_OK)
   
+class statistiqueWallets(ListAPIView):
+    serializer_class = serializers.UserSerializer
+    queryset = User.objects.all()
+    # permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        users = User.objects.all()
+        serializer = serializers.UserSerializer(users,many = True)
+        # print(serializer.data)
+        h=serializer.data
+        
+        key = []
+        value = []
+        l_unique = []
+        dic = dict()
+        d = dict()
+        list = []
+        i=0
+        w =0
+       
+        for user in h:           
+            datem = datetime.datetime.strptime(str(user['created_at']), "%Y-%m-%dT%H:%M:%S.%fZ")      
+            key.append(datem.month)
+            value.append(user['username'])
+            for i in range(len(value)):
+
+                dic[value[i]] = key[i]
+                i += 1
+    
+    
+            for i in value:
+                if datem.month not in l_unique:
+                    l_unique.append(datem.month)
+        print(l_unique.sort())
+        for elt in l_unique:
+            x = key.count(elt)
+            # print(x)
+           
+            d["month"] = elt
+            d["count"] = x
+            print(d)
+            list.append(d.copy())
+        print(list)
+           
+            # print(d)
+            
+        return Response(
+            list,
+        status=status.HTTP_200_OK)
 
 class TransactionsShopListView(ListAPIView):
     serializer_class = serializers.TransactionHistoryShopSerializer
@@ -571,6 +682,17 @@ class TransactionsShopListView(ListAPIView):
         account_transactions = TransactionShop.objects.filter(account = self.request.user)
         serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class PaymentShopsAdminDashView(ListAPIView):
+    serializer_class = serializers.TransactionHistoryShopSerializer
+    queryset = TransactionShop.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        print(self.request.user.username)
+        account_transactions = TransactionShop.objects.all().order_by('-timestamp')
+        serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
   
   
 class TransactionsMemberListView(ListAPIView):
@@ -580,7 +702,7 @@ class TransactionsMemberListView(ListAPIView):
 
     def list(self, request,pk,username):
         print(self.request.user.username)
-        account_transactions = Transaction.objects.filter(Q(to = username) |Q(account = pk) )
+        account_transactions = Transaction.objects.filter(Q(to = username) |Q(account = pk) ).order_by('-timestamp')
         my_trans = Transaction.objects.filter(account = pk)
         my_trans.update(type='Outflow')
         my_trans2 = Transaction.objects.filter(to = username)
@@ -606,7 +728,22 @@ class MakePaymentView(APIView):
         if serializer.is_valid(raise_exception=True):
             val_data = dict(serializer.validated_data)
 
-            if User.objects.filter(username=val_data['to_acct']).count() == 1:
+            sender_acct = Wallet.objects.get(account=self.request.user)
+            recv_account = User.objects.get(username=val_data['to_acct'])
+            wallet_instance = Wallet.objects.get(account=recv_account)
+            x = sender_acct.is_disabled
+            print(x)
+            if(sender_acct.is_disabled == True):
+                return Response({
+                "account status": "blocked",
+                "message": "Your account has been disabled, contact support"
+            })
+            elif(wallet_instance.is_disabled == True):
+                 return Response({
+                    "message": f"{recv_account} account has been disabled,you can't send money to {recv_account}"
+            })
+            elif User.objects.filter(username=val_data['to_acct']).count() == 1:
+       
                 if val_data['to_acct'] == request.user.username:
                     return Response({
                         "alert": "You can't send money to yourself silly!"
@@ -659,13 +796,17 @@ class MakePaymentShopView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
             val_data = dict(serializer.validated_data)
-            # print(val_data['to_acct'])
-            # sender_acct = Wallet.objects.get(account=self.request.user)
-            # recv_account = Shop.objects.get(name_shop=val_data['to_acct'])
-            # print(recv_account)
-            # print(sender_acct)
 
-            if Shop.objects.filter(name_shop=val_data['to_acct']).count() == 1:
+            sender_acct = Wallet.objects.get(account=self.request.user)
+            x = sender_acct.is_disabled
+            print(x)
+            if(sender_acct.is_disabled == True):
+                return Response({
+                "account status": "blocked",
+                "message": "Your account has been disabled, contact support"
+            })
+           
+            elif Shop.objects.filter(name_shop=val_data['to_acct']).count() == 1:
                 
                 if val_data['to_acct'] == self.request.user:
                     print(val_data['to_acct'])
@@ -768,3 +909,98 @@ class CurrentUserView(APIView):
         return Response(serializer.data)
 
 
+class ListGroups(ListAPIView):
+    serializer_class = serializers.GroupSerializer
+    queryset = group.objects.all()
+    permission_classes = [IsAuthenticated]
+    
+
+    def list(self, request):
+        groups = group.objects.all()
+        l =[]
+        
+        ser=serializers.GroupSerializer(groups,many = True)
+        for gr1 in groups:
+        #    print(gr1.id_groupe)
+           l.append(gr1.id_groupe)
+           h = Counter(l).keys()
+        #    d = dict()
+        for key in h :
+            group_target = group.objects.filter(id_groupe = key)
+            serial = serializers.GroupSerializer(group_target, many=True)
+            print(serial.data)
+            
+            # for i in groupe_target:
+            #     print(i.user)
+            #     print(i.is_member)
+            #     print(i.is_superuser)
+                
+            # d = dict()
+            # for elt in _grp:
+            #     d.update({"id_grp":
+
+            #     })
+                
+            
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+class CurrentUsergroup(APIView):
+    serializer_class = serializers.GroupSerializer
+    queryset = group.objects.all()
+    # permission_classes = [IsAuthenticated]
+    def get(self, request,pk):
+        grp = group.objects.get(user=pk)
+        serializer = serializers.GroupSerializer(grp,many=False)
+        # print(serializer.data['id_groupe'])
+        print(serializer.data['id_groupe'])
+        x = serializer.data['id_groupe']
+        my_groupe = group.objects.filter(id_groupe=x)
+        ser = serializers.GroupSerializer(my_groupe,many=True)
+        print(ser.data)
+        return Response(ser.data,status=status.HTTP_200_OK)
+class ProductBlockedview(APIView):
+    serializer_class = serializers.BlockedProductSerializer
+    queryset = Blocked_Product.objects.all()
+    def get(self,request):
+       blocProd =  Blocked_Product.objects.all()
+       serializer = BlockedProductSerializer(blocProd,many = True)
+       return Response(serializer.data,status=status.HTTP_200_OK)
+    def post(self,request):
+       
+        serializer=BlockedProductSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=status.HTTP_201_CREATED)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateProductStatusview(APIView):
+    serializer_class = serializers.UpdateProductStatusSerializer
+    queryset = Blocked_Product.objects.all()
+    def put(self,request,id,pk):
+
+        product = Blocked_Product.objects.get(Q(user=id) | Q(product= pk) )
+       
+        serializer=UpdateProductStatusSerializer(product,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateWalletStatusView(APIView):
+    serializer_class = serializers.updateWalletStatusSerializer
+    queryset = Blocked_Product.objects.all()
+    def get(self,request,id):
+        wal = Wallet.objects.get(account = id)
+        ser = WalletSerializer(wal,many = False)
+        return Response(ser.data,status=status.HTTP_200_OK)
+    def put(self,request,id):
+
+        wallet = Wallet.objects.get(account = id)
+       
+        serializer=updateWalletStatusSerializer(wallet,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)

@@ -125,6 +125,13 @@ def generate_wallet_id():
         if Wallet.objects.filter(wallet_id=_id).count() == 0:
             break 
     return _id 
+    
+def generate_groupe_id():
+    while True:
+        _id = binascii.b2a_hex(os.urandom(4))
+        if Wallet.objects.filter(wallet_id=_id).count() == 0:
+            break 
+    return _id 
 
 
 def generate_transaction_id():
@@ -140,7 +147,7 @@ class Wallet(models.Model):
     account = models.ForeignKey(User,on_delete=models.CASCADE, null =True)
     wallet_id=models.CharField(max_length=17, validators=[MinLengthValidator(17), MaxLengthValidator(17)], default=generate_wallet_id, unique=True)
     #shop = models.ForeignKey(Shop,on_delete=models.CASCADE , null = True)
-    creation_date = models.DateTimeField(verbose_name=_('creation date'), null = True)
+    creation_date = models.DateTimeField(default=timezone.now)
     is_disabled = models.BooleanField(default=False)
     balance = models.DecimalField(max_digits=10, decimal_places=3, default=0.000)
    
@@ -205,7 +212,7 @@ class shop_account(models.Model):
     wallet_id = models.CharField(max_length=17, validators=[MinLengthValidator(17), MaxLengthValidator(17)], default=generate_wallet_id, unique=True)
     is_disabled = models.BooleanField(default=False)
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-
+    
     def __str__(self) :
         return self.account.email
 
@@ -214,3 +221,17 @@ class Blocked_Product(models.Model):
     product = models.ForeignKey(product,on_delete=models.CASCADE,null= True)
     user  = models.ForeignKey(User,on_delete=models.CASCADE)
     blocked = models.BooleanField(default=False)
+
+
+
+class group(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    id_groupe = models.CharField(max_length=4, validators=[MinLengthValidator(4), MaxLengthValidator(4)], default=generate_groupe_id)
+    is_superuser = models.BooleanField(default = False)
+    is_member = models.BooleanField(default =False)
+    
+
+# class stat(models.Model):
+#     month= models.IntegerField()
+#     count = models.integer
+    

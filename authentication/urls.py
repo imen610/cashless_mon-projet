@@ -25,21 +25,27 @@ urlpatterns=[
     path('proshop/<int:id>/<int:pk>/',views.ShopProductAPIView.as_view(),name='updateshopproduct'),
     path('usermem/<int:id>/',views.membreAPIView.as_view(),name='membres_liste'),
     path('usermem/<int:id>/<int:pk>/',views.membreUpdateAPIView.as_view(),name='membres_update_get_delete'),
-   # path('shopproducts/<int:id>/',views.ProductShopsAPIView.as_view(),name='shop_product_id'),
     path('shop/<int:pk>/',views.ShopDetail.as_view(),name='detail_shops'),
     path('product/<int:id>/',views.ProductDetail.as_view(),name='detail_products'),
     path("my-wallet/", views.AccountWalletView.as_view(), name="wallet"),
     path("my-wallet/<int:pk>/", views.AccountWalletMemberView.as_view(), name="wallet_member"),
     path("transactions/", views.TransactionsListView.as_view(), name="transactions"),
     path("transactionsShop/", views.TransactionsShopListView.as_view(), name="transactionsShop"),
+    path("PaymentShopsAdminDashView/", views.PaymentShopsAdminDashView.as_view(), name="PaymentShopsAdminDashView"),
+    path("TransactionsAdminDashListView/", views.TransactionsAdminDashListView.as_view(), name="TransactionsAdminDashListView"),
     path("transactions/<int:pk>/<str:username>/", views.TransactionsMemberListView.as_view(), name="transactions_member"),
+    path("stat/", views.statistiqueWallets.as_view(), name="statistiqueWallets"),
     path("pay/", views.MakePaymentView.as_view(), name="pay"),
     path("payshop/", views.MakePaymentShopView.as_view(), name="payshop"),
     path("transfer/", views.MakeTransactionsView.as_view(), name="transfer"),
     path("transfer-success/", views.SuccessView.as_view(), name="success"),
     path("current/", views.CurrentUserView.as_view(), name='test'),
-# MakePaymentShopView
-# TransactionsShopListView
+    path("currentgroup/<int:pk>/", views.CurrentUsergroup.as_view(), name='test'),
+    path("groups/", views.ListGroups.as_view(), name='test'),
+    path("ProductBlocked/", views.ProductBlockedview.as_view(), name='ProductBlocked'),
+    path("UpdateProductStatus/<int:id>/<int:pk>/", views.UpdateProductStatusview.as_view(), name='UpdateProductStatus'),
+    path("UpdateWalletStatus/<int:id>/", views.UpdateWalletStatusView.as_view(), name='UpdateWalletStatus'),
+#    UpdateWalletStatus
    ]
 
 
