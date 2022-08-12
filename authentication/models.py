@@ -81,6 +81,8 @@ class User(AbstractBaseUser,PermissionsMixin):
     is_membre = models.BooleanField(default=False)
     verification_code = models.CharField(default=f"{random.randint(111111,999999)}", max_length=9)
     tax_id = models.CharField(max_length=60, null=True)
+    wallet_blocked=models.BooleanField(default=False)
+
     
     
     USERNAME_FIELD='email'

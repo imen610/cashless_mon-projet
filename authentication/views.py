@@ -69,7 +69,7 @@ class RegisterAPIView(views.APIView):
             phone_number = serializer.validated_data['phone_number']
             account_created = User.objects.get(phone_number=phone_number)
           
-
+            
             send_verification(phone_number, account_created.verification_code)
             return redirect('http://0.0.0.0:8000/api/auth/verify/')
 
@@ -120,9 +120,6 @@ class TokenRefreshView(TokenViewBase):
         Renew tokens (access and refresh) with new expire time based on specific user's access token.
     """
     serializer_class = TokenRefreshLifetimeSerializer
-
-
-
 
 
 # class RegisterView(generics.GenericAPIView):
@@ -241,13 +238,13 @@ class TokenRefreshView(TokenViewBase):
 #                 if not PasswordResetTokenGenerator().check_token(user):
 #                     return Response({'error' : 'Token is not valid , please request a new one'})
 
-# class SetNewPasswordAPIView(generics.GenericAPIView):
-#     serializer_class=SetNewPasswordSerializer
+class SetNewPasswordAPIView(generics.GenericAPIView):
+    serializer_class=SetNewPasswordSerializer
 
-#     def patch(self,request):
-#         serializer = self.serializer_class(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         return Response({'success': True,'message':'Password reset success'},status=status.HTTP_200_OK)
+    def patch(self,request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({'success': True,'message':'Password reset success'},status=status.HTTP_200_OK)
 
 class UserList(ListCreateAPIView):
     queryset = User.objects.all()
@@ -450,12 +447,15 @@ class membreAPIView(views.APIView):
         l = request.data['id']
         print(l)
         grp2 = group.objects.get(user = l)
+        us = User.objects.get(id = l)
         ser2 = GroupSerializer(grp2)
         t = ser2.data['id_groupe']
         grp_user = group.objects.filter(id_groupe =t)
         print(grp_user)
         grp_user.update(is_superuser=False)
         grp_user.update(is_member=True)
+        us.is_membre=True
+        us.save()
         grp_user.update(id_groupe=k)
        
         print(ser2.data['id_groupe'])
@@ -523,6 +523,8 @@ class AccountWalletView(APIView):
         wallet_data = Wallet.objects.filter(account__id=request.user.id).values()[0]
 
         if wallet_data["is_disabled"] == True:
+            wall_stat = User.objects.filter(id = request.user.id).values()[0]
+            wall_stat.update(wallet_blocked=True)
             return Response({
                 "account status": "blocked",
                 "wallet id": wallet_data['wallet_id'],
@@ -562,9 +564,13 @@ class AccountWalletMemberView(APIView):
         wallet_data = Wallet.objects.filter(account__id=pk).values()[0]
 
         if wallet_data["is_disabled"] == True:
+            wall_stat = User.objects.filter(id = pk)
+            wall_stat.update(wallet_blocked=True)
             return Response({
                 "account status": "blocked",
                 "wallet id": wallet_data['wallet_id'],
+                "is_disabled": wallet_data['is_disabled'],
+                "balance": float(wallet_data['balance']),
                 "message": "Your account has been disabled, contact support"
             })
 
@@ -572,6 +578,7 @@ class AccountWalletMemberView(APIView):
             return Response({
                 "account status": "enabled",
                 "wallet id": wallet_data['wallet_id'],
+                "is_disabled": wallet_data['is_disabled'],
                 "balance": float(wallet_data['balance'])
             })
 
@@ -643,8 +650,17 @@ class statistiqueWallets(ListAPIView):
         w =0
        
         for user in h:           
-            datem = datetime.datetime.strptime(str(user['created_at']), "%Y-%m-%dT%H:%M:%S.%fZ")      
+            datem = datetime.datetime.strptime(str(user['created_at']), "%Y-%m-%dT%H:%M:%S.%fZ")  
+            print(datem,' ùùùùùùùùùùùùùùù')
+            my_date1 = datem # if date is 01/01/2018
+            year, week_num, day_of_week = my_date1.isocalendar()
+            print("Week #" + str(week_num) + " of year " + str(year))
+            print(day_of_week)
+
+            
             key.append(datem.month)
+            
+           
             value.append(user['username'])
             for i in range(len(value)):
 
@@ -665,11 +681,154 @@ class statistiqueWallets(ListAPIView):
             print(d)
             list.append(d.copy())
         print(list)
-           
+       
+        my_date = datetime.date.today() # if date is 01/01/2018
+        year, week_num, day_of_week = my_date.isocalendar()
+        print("Week #" + str(week_num) + " of year " + str(year))
+        print(day_of_week)
             # print(d)
+        
             
         return Response(
             list,
+        status=status.HTTP_200_OK)
+
+
+
+  
+class statisticsTransactionsView(ListAPIView):
+    serializer_class = serializers.TransactionHistorySerializer
+    queryset = Transaction.objects.all()
+    # permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        transactions = Transaction.objects.all()
+        serializer = serializers.TransactionHistorySerializer(transactions,many = True)
+        h=serializer.data
+        
+        key = []
+        value = []
+        value2 = []
+        value3 = []
+        value4 = []
+        value5 = []
+        value6 = []
+        l_unique = []
+        d1 = dict()
+        d2 = dict()
+        d3 = dict()
+        d4 = dict()
+        d5 = dict()
+        d6 = dict()
+        d = dict()
+        list = []
+        i=0
+        w =0
+       
+        for trans in h:           
+            datem = datetime.datetime.strptime(str(trans['timestamp']), "%Y-%m-%dT%H:%M:%S.%fZ")  
+            # print(datem,' ùùùùùùùùùùùùùùù')
+            my_date = datetime.date.today() 
+            year2, week_num2, day_of_week2 = my_date.isocalendar()
+            my_date1 = datem 
+            year, week_num, day_of_week = my_date1.isocalendar()
+            # print("Week #" + str(week_num) + " of year " + str(year))
+            if(week_num ==week_num2):
+              
+                    if(day_of_week == 1):
+            
+                        key.append(trans)
+                    
+                    elif(day_of_week == 2):
+                        value.append(trans)
+                    elif(day_of_week == 3):
+                        value2.append(trans)
+                    elif(day_of_week == 4):
+                        value3.append(trans)
+                    elif(day_of_week == 5):
+                        value4.append(trans)
+                    elif(day_of_week == 6):
+                        value5.append(trans)
+                    elif(day_of_week == 7):
+                        value6.append(trans)
+
+            
+                        # print(key)
+        print(len(key))
+        print(len(value))
+        print(len(value2))
+        print(len(value3))
+        print(len(value4))
+        print(len(value5))
+        print(len(value6))
+
+
+       
+        d["jour"] = 1
+        d["count"] = len(key)
+        list.append(d.copy())
+        
+        d1["jour"] = 2
+        d1["count"] = len(value)
+        d2["jour"] = 3
+        d2["count"] = len(value2)
+        d3["jour"] = 4
+        d3["count"] = len(value3)
+        d4["jour"] = 5
+        d4["count"] = len(value4)
+        d5["jour"] = 6
+        d5["count"] = len(value5)
+        d6["jour"] = 7
+        d6["count"] = len(value6)
+        list.append(d1)
+        list.append(d2)
+        list.append(d3)
+        list.append(d4)
+        list.append(d5)
+        list.append(d6)
+
+        print(list)
+        # list.append(d.copy())
+        # print(list)
+        
+        
+            
+        # for elt in trans:
+        #     if(day_of_week == 4):
+            
+        #         value.append(elt) 
+        # print(len(value))
+            
+        #     value.append(user['username'])
+        #     for i in range(len(value)):
+
+        #         dic[value[i]] = key[i]
+        #         i += 1
+    
+    
+        #     for i in value:
+        #         if datem.month not in l_unique:
+        #             l_unique.append(datem.month)
+        # print(l_unique.sort())
+        # for elt in l_unique:
+        #     x = key.count(elt)
+        #     # print(x)
+           
+        #     d["month"] = elt
+        #     d["count"] = x
+        #     print(d)
+        #     list.append(d.copy())
+        # print(list)
+       
+        # my_date = datetime.date.today() # if date is 01/01/2018
+        # year, week_num2, day_of_week = my_date.isocalendar()
+        # # print("Week #" + str(week_num) + " of year " + str(year))
+        # # print(day_of_week)
+        # #     # print(d)
+        
+            
+        return Response(
+           list,
         status=status.HTTP_200_OK)
 
 class TransactionsShopListView(ListAPIView):
@@ -720,6 +879,7 @@ class MakePaymentView(APIView):
     def get(self, request, format=None):
         message = "Start sending money by just typing in a username!"
         return Response({
+            "account status": "active",
             "message": message
         })
 
@@ -735,11 +895,12 @@ class MakePaymentView(APIView):
             print(x)
             if(sender_acct.is_disabled == True):
                 return Response({
-                "account status": "blocked",
+                "account status": "Sblocked",
                 "message": "Your account has been disabled, contact support"
             })
             elif(wallet_instance.is_disabled == True):
                  return Response({
+                    "account status": "Rblocked",
                     "message": f"{recv_account} account has been disabled,you can't send money to {recv_account}"
             })
             elif User.objects.filter(username=val_data['to_acct']).count() == 1:
@@ -757,6 +918,7 @@ class MakePaymentView(APIView):
 
                     if float(amount) > float(sender_acct.balance):
                         return Response({
+                            'account status' : 'insuffisant',
                             'alert': "You do not have enough funds to complete the transfer..."
                         }, status=status.HTTP_406_NOT_ACCEPTABLE)
 
@@ -1002,5 +1164,21 @@ class UpdateWalletStatusView(APIView):
         serializer=updateWalletStatusSerializer(wallet,data=request.data)
         if serializer.is_valid():
             serializer.save()
+            if serializer.data['is_disabled']== True:
+                print(serializer.data['is_disabled'])
+                wall_stat = User.objects.get(id = id)
+                wall_stat.wallet_blocked= True
+                wall_stat.save()
+            elif serializer.data['is_disabled']== False:
+                print(serializer.data['is_disabled'])
+                wall_stat = User.objects.get(id = id)
+                wall_stat.wallet_blocked= False
+                wall_stat.save()
+                # print(wall_stat['wallet_blocked'])
+                # wall_stat.update(wallet_blocked=True)
+                # print(wall_stat)
+                # print(wall_stat['wallet_blocked'])
+                
+
             return Response(serializer.data,status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)

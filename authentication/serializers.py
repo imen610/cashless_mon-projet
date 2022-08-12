@@ -190,7 +190,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta :
         model = User
-        fields = ['id','username','email','first_name','last_name','phone_number','image','address','membre','created_at']
+        fields = ['id','username','email','first_name','last_name','phone_number','image','address','membre','created_at','wallet_blocked','is_membre']
         depth = 1
         
 

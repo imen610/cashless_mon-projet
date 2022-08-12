@@ -35,6 +35,7 @@ urlpatterns=[
     path("TransactionsAdminDashListView/", views.TransactionsAdminDashListView.as_view(), name="TransactionsAdminDashListView"),
     path("transactions/<int:pk>/<str:username>/", views.TransactionsMemberListView.as_view(), name="transactions_member"),
     path("stat/", views.statistiqueWallets.as_view(), name="statistiqueWallets"),
+    path("statisticsTransactions/", views.statisticsTransactionsView.as_view(), name="statisticsTransactions"),
     path("pay/", views.MakePaymentView.as_view(), name="pay"),
     path("payshop/", views.MakePaymentShopView.as_view(), name="payshop"),
     path("transfer/", views.MakeTransactionsView.as_view(), name="transfer"),
@@ -45,7 +46,7 @@ urlpatterns=[
     path("ProductBlocked/", views.ProductBlockedview.as_view(), name='ProductBlocked'),
     path("UpdateProductStatus/<int:id>/<int:pk>/", views.UpdateProductStatusview.as_view(), name='UpdateProductStatus'),
     path("UpdateWalletStatus/<int:id>/", views.UpdateWalletStatusView.as_view(), name='UpdateWalletStatus'),
-#    UpdateWalletStatus
    ]
 
 
+# statisticsTransactionsView
