@@ -20,10 +20,10 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework.generics import ListCreateAPIView, ListAPIView
 from django.contrib.auth import get_user_model
 from cashless.settings import SECRET_KEY
-from  .serializers import  BlockedProductSerializer, GroupSerializer, ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UpdateProductStatusSerializer, UserSerializer, WalletSerializer, updateWalletStatusSerializer
+from  .serializers import  BlockedProductSerializer, GroupSerializer, ListProductSerializer, PaymentNFCSerializer, ProductSerializer,RegisterSerializer, EmailVerificationSerializer,RestPasswordEmailRequestSerialiser , SetNewPasswordSerializer, ShopSerializer, UpdateProductStatusSerializer, UserSerializer, WalletSerializer, updateWalletStatusSerializer
 from rest_framework.response import Response 
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Blocked_Product, Payment, Transaction, TransactionShop, User, Shop, Wallet, group, product, shop_account
+from .models import Blocked_Product, Payment, Transaction, TransactionShop, User, Shop, Wallet, group, list_product, product, shop_account
 from cashless.utils import Util
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
@@ -788,44 +788,6 @@ class statisticsTransactionsView(ListAPIView):
         list.append(d6)
 
         print(list)
-        # list.append(d.copy())
-        # print(list)
-        
-        
-            
-        # for elt in trans:
-        #     if(day_of_week == 4):
-            
-        #         value.append(elt) 
-        # print(len(value))
-            
-        #     value.append(user['username'])
-        #     for i in range(len(value)):
-
-        #         dic[value[i]] = key[i]
-        #         i += 1
-    
-    
-        #     for i in value:
-        #         if datem.month not in l_unique:
-        #             l_unique.append(datem.month)
-        # print(l_unique.sort())
-        # for elt in l_unique:
-        #     x = key.count(elt)
-        #     # print(x)
-           
-        #     d["month"] = elt
-        #     d["count"] = x
-        #     print(d)
-        #     list.append(d.copy())
-        # print(list)
-       
-        # my_date = datetime.date.today() # if date is 01/01/2018
-        # year, week_num2, day_of_week = my_date.isocalendar()
-        # # print("Week #" + str(week_num) + " of year " + str(year))
-        # # print(day_of_week)
-        # #     # print(d)
-        
             
         return Response(
            list,
@@ -1091,17 +1053,6 @@ class ListGroups(ListAPIView):
             group_target = group.objects.filter(id_groupe = key)
             serial = serializers.GroupSerializer(group_target, many=True)
             print(serial.data)
-            
-            # for i in groupe_target:
-            #     print(i.user)
-            #     print(i.is_member)
-            #     print(i.is_superuser)
-                
-            # d = dict()
-            # for elt in _grp:
-            #     d.update({"id_grp":
-
-            #     })
                 
             
         return Response(ser.data, status=status.HTTP_200_OK)
@@ -1174,11 +1125,136 @@ class UpdateWalletStatusView(APIView):
                 wall_stat = User.objects.get(id = id)
                 wall_stat.wallet_blocked= False
                 wall_stat.save()
-                # print(wall_stat['wallet_blocked'])
-                # wall_stat.update(wallet_blocked=True)
-                # print(wall_stat)
-                # print(wall_stat['wallet_blocked'])
-                
+               
 
-            return Response(serializer.data,status=status.HTTP_200_OK)
+
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+class TopFourShops(APIView):
+ 
+    serializer_class = serializers.TransactionHistoryShopSerializer
+    queryset = TransactionShop.objects.all()
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        l_uni = []
+        l =[]
+        j=[]
+        k =[]
+        dic = dict()
+        account_transactions = TransactionShop.objects.all().order_by('-timestamp')
+        serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+        h= serializer.data
+        print('hello')
+        for trans in h:
+            # print(trans['to'])
+            l.append(trans['to'])
+        print(l)
+        for elt in l:
+            if elt not in l_uni :
+                l_uni.append(elt)
+        print(l_uni)
+        for e in l_uni:
+             x = l.count(e)
+             j.append(x)
+        print(j)
+        for i in range(len(l_uni)):
+
+                dic[l_uni[i]] = j[i]
+                i += 1
+        sortedDict = sorted(dic.items(), key=lambda x: x[1], reverse=True)
+        print(sortedDict)
+        for i in range(4):
+            k.append(sortedDict[i])
+        print(k[1][1])
+        print(k[1][0])
+
+        # print(sortedDict[i])
+        return Response(k, status=status.HTTP_200_OK)
+
+class productVendueview(APIView):
+    serializer_class = serializers.ListProductSerializer
+    queryset = list_product.objects.all()
+    def get(self,request):
+        # print(request.data['imen'])
+        t = 0
+        listProduct = list_product.objects.all()
+        serializer= ListProductSerializer(listProduct, many = True)
+        print(serializer.data[0]['product'])
+        for i in serializer.data[0]['product']:
+            print(i['price_product'])
+            t+=i['price_product']
+        print(t)
+        listProduct.update(total=t)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+
+class paymentNFC(APIView):
+    serializer_class = serializers.PaymentNFCSerializer
+
+    def get(self, request, format=None):
+        message = "Start sending money by just typing in a shop_name!"
+        return Response({
+            "message": message
+        })
+
+    def post(self, request):
+        listProd = list_product.objects.all()
+        ser = ListProductSerializer(listProd, many = True)
+        print(ser.data[0]['shop']['name_shop'])
+        # for i in ser.data:
+        #     print(i[0]['shop'])
+
+       
+        serializer = PaymentNFCSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            # print(serializer.data['code_NFC'])
+
+            sender_acct = Wallet.objects.get(wallet_id = serializer.data['code_NFC'])
+            s = WalletSerializer(sender_acct, many = False)
+            user = User.objects.get(id = s.data['account'])
+            serial = UserSerializer(user)
+            print(serial.data['username'])
+            print(request.user)
+            # print(sender_acct)
+            x = sender_acct.is_disabled
+            # print(x)
+            if(sender_acct.is_disabled == True):
+                return Response({
+                "account status": "blocked",
+                "message": "Your account has been disabled, contact support"
+            })
+           
+            elif Shop.objects.filter(name_shop=ser.data[0]['shop']['name_shop']).count() == 1:
+            
+                    amount = ser.data[0]['total']
+                    sender_acct = Wallet.objects.get(wallet_id = serializer.data['code_NFC'])
+                    recv_account = Shop.objects.get(name_shop=ser.data[0]['shop']['name_shop'])
+                    # print(recv_account)
+                    wallet_instance = shop_account.objects.get(account=recv_account)
+
+                    if float(amount) > float(sender_acct.balance):
+                        return Response({
+                            'alert': "You do not have enough funds to complete the transfer..."
+                        }, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+                    else:
+                        wallet_instance.balance = float(wallet_instance.balance) + float(amount)
+                        wallet_instance.save()
+
+                        sender_acct.balance = float(sender_acct.balance) - float(ser.data[0]['total'])
+                        sender_acct.save()
+
+                        trx = TransactionShop.objects.create(
+                            account = user,
+                            amount = ser.data[0]['total'],
+                            to = ser.data[0]['shop']['name_shop']
+                        )
+
+                        trx.save()
+                        return Response({"user":serial.data['username'],"products":ser.data[0]['product'],"shop":ser.data[0]['shop'],"totale":ser.data[0]['total']}, status = status.HTTP_200_OK)
+            else:
+                return Response({
+                    "alert": f"Account not found, please try again."
+                }, status=status.HTTP_404_NOT_FOUND)

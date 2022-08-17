@@ -7,7 +7,7 @@ from asyncio.log import logger
 from http.client import OK
 
 from cashless import settings
-from .models import Blocked_Product, User, Shop, Wallet, group,product, shop_account
+from .models import Blocked_Product, User, Shop, Wallet, group, list_product,product, shop_account
 from rest_framework import serializers 
 from django.contrib.auth import authenticate
 from django.contrib import auth
@@ -242,7 +242,7 @@ from . import models
 class WalletSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Wallet
-        fields = ("wallet_id", "is_disabled", "balance")
+        fields = ("wallet_id", "is_disabled", "balance","account")
         extra_kwargs = {
             "wallet_id": {
                 "read_only": True
@@ -311,6 +311,10 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Payment
         fields = ("to_acct", "amount", )
+class PaymentNFCSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.article_vendues
+        fields = ["code_NFC",]
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -367,3 +371,9 @@ class updateWalletStatusSerializer(serializers.ModelSerializer):
     class Meta  : 
         model = Wallet
         fields = ["is_disabled"]
+
+class ListProductSerializer(serializers.ModelSerializer):
+    class Meta  : 
+        model = list_product
+        fields = ('id','user','product','shop','total')
+        depth = 1

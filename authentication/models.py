@@ -1,4 +1,5 @@
 import binascii
+from math import prod
 import os
 from django.utils import timezone
 from django.db import models
@@ -203,10 +204,6 @@ class Payment(models.Model):
         return self.from_acct.email 
 
 
-class article_vendues(models.Model):
-    shop = models.ForeignKey(Shop,on_delete=models.CASCADE)
-    product =models.ForeignKey(product,on_delete=models.CASCADE)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
 
 
 class shop_account(models.Model):
@@ -231,9 +228,18 @@ class group(models.Model):
     id_groupe = models.CharField(max_length=4, validators=[MinLengthValidator(4), MaxLengthValidator(4)], default=generate_groupe_id)
     is_superuser = models.BooleanField(default = False)
     is_member = models.BooleanField(default =False)
-    
 
-# class stat(models.Model):
-#     month= models.IntegerField()
-#     count = models.integer
-    
+class list_product(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE,default = '')
+    product =  models.ManyToManyField(product)
+    shop = models.ForeignKey(Shop,on_delete=models.CASCADE)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=00.00)
+
+
+
+class article_vendues(models.Model):
+    product =models.ForeignKey(list_product,on_delete=models.CASCADE,default = '')
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    code_NFC = models.CharField(max_length=17, validators=[MinLengthValidator(17), MaxLengthValidator(17)], default=generate_wallet_id, unique=True)
+
+## il va prendre un code NFC ET IL VA RETOURNER UNE LISTE DE PRODUiTS W TOTALe W codeNFC 

@@ -46,7 +46,10 @@ urlpatterns=[
     path("ProductBlocked/", views.ProductBlockedview.as_view(), name='ProductBlocked'),
     path("UpdateProductStatus/<int:id>/<int:pk>/", views.UpdateProductStatusview.as_view(), name='UpdateProductStatus'),
     path("UpdateWalletStatus/<int:id>/", views.UpdateWalletStatusView.as_view(), name='UpdateWalletStatus'),
+    path("TopFourShops/", views.TopFourShops.as_view(), name='TopFourShops'),
+    path("productVendueview/", views.productVendueview.as_view(), name='productVendueview'),
+    path("paymentNFC/", views.paymentNFC.as_view(), name='paymentNFC'),
    ]
+#    
 
-
-# statisticsTransactionsView
+# productVendueview
