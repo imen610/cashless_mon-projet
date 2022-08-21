@@ -1,6 +1,7 @@
 from unicodedata import name
 from django.urls import path 
 from . import views
+from django.contrib.auth import views as auth_views
 
 
 
@@ -12,9 +13,13 @@ urlpatterns=[
     # path('email-verify',views.verifyEmail.as_view(),name="email-verify"),
     # path('login/',views.LoginAPIView.as_view(),name='login'),
     # path('token/refresh/',TokenRefreshView.as_view(),name='token_refresh'),
-    # path('request-reset-email',views.RequestPasswordRestEmail.as_view(),name='request-reset-email'),
-    # path('password-reset/<uidb64>/<token>/',views.PasswordTokenCheckAPI.as_view(),name='password-reset-confirm'),
-    #path('password-reset-complete',views.SetNewPasswordAPIView.as_view(),name='password-reset-complete'),
+    path('request-reset-email/',views.RequestPasswordRestEmail.as_view(),name='request-reset-email'),
+    path('password-reset/<uidb64>/<token>/',views.PasswordTokenCheckAPI.as_view(),name='password-reset-confirm'),
+    path('password-reset-complete/',views.SetNewPasswordAPIView.as_view(),name='password-reset-complete'),
+    path('reset_password/', views.PasswordReset.as_view() ,name= 'reset_password'),
+    # path('reset_password_sent/', auth_views.PasswordResetDoneView.as_view() ,name= 'password_reset_done'),
+    # path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view() ,name= 'password_reset_confirm' ),
+    # path('reset_password_complete/', auth_views.PasswordResetCompleteView.as_view() ,name= 'password_reset_complete'),
     path('users/',views.UserList.as_view(),name='list_users'),
     path('users/<int:pk>/',views.UserDetail.as_view(),name='detail_users'),
     path('shops/',views.ShopAPIView.as_view(),name='shops'),
@@ -26,7 +31,7 @@ urlpatterns=[
     path('usermem/<int:id>/',views.membreAPIView.as_view(),name='membres_liste'),
     path('usermem/<int:id>/<int:pk>/',views.membreUpdateAPIView.as_view(),name='membres_update_get_delete'),
     path('shop/<int:pk>/',views.ShopDetail.as_view(),name='detail_shops'),
-    path('product/<int:id>/',views.ProductDetail.as_view(),name='detail_products'),
+    path('product/<int:pk>/',views.ProductDetail.as_view(),name='detail_products'),
     path("my-wallet/", views.AccountWalletView.as_view(), name="wallet"),
     path("my-wallet/<int:pk>/", views.AccountWalletMemberView.as_view(), name="wallet_member"),
     path("transactions/", views.TransactionsListView.as_view(), name="transactions"),
@@ -49,6 +54,9 @@ urlpatterns=[
     path("TopFourShops/", views.TopFourShops.as_view(), name='TopFourShops'),
     path("productVendueview/", views.productVendueview.as_view(), name='productVendueview'),
     path("paymentNFC/", views.paymentNFC.as_view(), name='paymentNFC'),
+    path("listProdPaied/<int:id>/", views.ListProductView.as_view(), name='ListProduct'),
+    path("ListProductAll/", views.ListProductAllView.as_view(), name='ListProductAll'),
+    # ListProductView
    ]
 #    
 

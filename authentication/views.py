@@ -200,43 +200,47 @@ class TokenRefreshView(TokenViewBase):
         
         
 
-  
+class PasswordReset(views.APIView):
+    def get():
+        return Response("reset your password", status= status.HTTP_200_OK)
     
     
-# class RequestPasswordRestEmail(generics.GenericAPIView):
+class RequestPasswordRestEmail(generics.GenericAPIView):
 
-#     serializer_class = RestPasswordEmailRequestSerialiser
+    serializer_class = RestPasswordEmailRequestSerialiser
 
-#     def post(self,request):
-#         serializer= self.serializer_class(data=request.data)
-#         email= request.data['email']
-#         if User.objects.filter(email=email).exists():
-#                 user=User.objects.filter(email=email).first()
-#                 uidb64=urlsafe_base64_encode(smart_bytes(user.id))
-#                 token = PasswordResetTokenGenerator().make_token(user)
-#                 current_site=get_current_site(request=request).domain
+    def post(self,request):
+        serializer= self.serializer_class(data=request.data)
+        email= request.data['email']
+        if User.objects.filter(email=email).exists():
+                user=User.objects.filter(email=email).first()
+                uidb64=urlsafe_base64_encode(smart_bytes(user.id))
+                token = PasswordResetTokenGenerator().make_token(user)
+                current_site=get_current_site(request=request).domain
         
-#                 relativeLink=reverse('password-reset-confirm',kwargs={'uidb64':uidb64,'token':token})
-#                 absurl='http://'+ str(current_site)+str(relativeLink)
-#                 email_body='hello ,\n Use link below to reset  your password \n' + absurl
-#                 data={'email_body':email_body ,'to_email':user.email,'email_subject':'reset your password'}
+                relativeLink=reverse('password-reset-confirm',kwargs={'uidb64':uidb64,'token':token})
+                absurl='http://'+ str(current_site)+str(relativeLink)
+                absurl='http://127.0.0.1:8000/ reset_password/'+ str(current_site)+str(relativeLink)
+               
+                email_body='hello ,\n Use link below to reset  your password \n' + absurl
+                data={'email_body':email_body ,'to_email':user.email,'email_subject':'reset your password'}
     
-#                 Util.send_email(data)
-#         return Response({'success':'we have sent you a link to reset your password'},status=status.HTTP_200_OK)
+                Util.send_email(data)
+        return Response({'success':'we have sent you a link to reset your password','relativeLink':relativeLink,'email':user.email},status=status.HTTP_200_OK)
 
-# class PasswordTokenCheckAPI(generics.GenericAPIView):
-#     def get(self,request,uidb64,token):
-#         try:
-#             id = smart_str(urlsafe_base64_decode(uidb64))
-#             user=User.objects.get(id=id)
-#             if not PasswordResetTokenGenerator().check_token(user,token):
-#                 return Response({'error':'Token is not valid , please request a new one'})
+class PasswordTokenCheckAPI(generics.GenericAPIView):
+    def get(self,request,uidb64,token):
+        try:
+            id = smart_str(urlsafe_base64_decode(uidb64))
+            user=User.objects.get(id=id)
+            if not PasswordResetTokenGenerator().check_token(user,token):
+                return Response({'error':'Token is not valid , please request a new one'})
             
-#             return Response({'success':True,'message':'Credentials Valid','uidb64':uidb64,'token':token},status=status.HTTP_200_OK)
+            return Response({'success':True,'message':'Credentials Valid','uidb64':uidb64,'token':token},status=status.HTTP_200_OK)
 
-#         except DjangoUnicodeDecodeError as identifier:
-#                 if not PasswordResetTokenGenerator().check_token(user):
-#                     return Response({'error' : 'Token is not valid , please request a new one'})
+        except DjangoUnicodeDecodeError as identifier:
+                if not PasswordResetTokenGenerator().check_token(user):
+                    return Response({'error' : 'Token is not valid , please request a new one'})
 
 class SetNewPasswordAPIView(generics.GenericAPIView):
     serializer_class=SetNewPasswordSerializer
@@ -266,7 +270,7 @@ class ShopDetail(RetrieveUpdateDestroyAPIView):
 class ProductDetail(RetrieveUpdateDestroyAPIView):
     queryset = product
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     
 
@@ -290,13 +294,6 @@ class ShopAPIView(views.APIView):
 
 class ShopUpdateAPIView(views.APIView):
     lookup_fields = 'id'
-    # def get_shop(self,id):
-    #     print("imen")
-    #     try:
-    #         shop = Shop.objects.get(id=id)
-    #         print('hello')
-    #     except shop.DoesNotExist:
-    #         return HTTPResponse(status=status.HTTP_404_NOT_FOUND)
 
     def get(self,request,id):
         shop = Shop.objects.get(id=id)
@@ -424,12 +421,15 @@ class membreAPIView(views.APIView):
         return Response(serializer.data , status=status.HTTP_200_OK)
 
     def post(self,request,id):
+        l = request.data['id']
         e = User.objects.get(id=id)
         membres = e.membre.all()
-        gr = group.objects.get(user = id)
+        print()
+        # gr = group.objects.get(user = id)
         grp = group.objects.get(user = id)
         ser = GroupSerializer(grp)
         k=ser.data['id_groupe']
+        h=e.membre.add(l)
         print(k)
         for mem1 in membres:
             for mem2 in membres:
@@ -440,11 +440,13 @@ class membreAPIView(views.APIView):
                     id2=mem2.id
                     if(user1 !=user2):
                         a = user1.membre.add(id2)
-                        a = user1.membre.add(e.id)
-                        a = user2.membre.add(e.id)
-                        a = user2.membre.add(id1)
+                        b = user1.membre.add(e.id)
+                        c = user2.membre.add(e.id)
+                        d = user2.membre.add(id1)
         # print(e)
-        l = request.data['id']
+      
+       
+
         print(l)
         grp2 = group.objects.get(user = l)
         us = User.objects.get(id = l)
@@ -460,7 +462,6 @@ class membreAPIView(views.APIView):
        
         print(ser2.data['id_groupe'])
 
-        h=e.membre.add(l)
        
         # print(h)
         return Response("member added with success",status=status.HTTP_201_CREATED)
@@ -798,10 +799,11 @@ class TransactionsShopListView(ListAPIView):
     queryset = TransactionShop.objects.all()
     permission_classes = [IsAuthenticated]
 
-    def list(self, request):
+    def get(self, request):
         print(self.request.user.username)
-        account_transactions = TransactionShop.objects.filter(account = self.request.user)
-        serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+        account_transactions = TransactionShop.objects.filter(account = self.request.user).order_by('-timestamp')
+        serializer = serializers.TransactionHistoryShopSerializer(account_transactions, many=True)
+        print(serializer.data[0]['product']['product'])
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PaymentShopsAdminDashView(ListAPIView):
@@ -809,10 +811,10 @@ class PaymentShopsAdminDashView(ListAPIView):
     queryset = TransactionShop.objects.all()
     permission_classes = [IsAuthenticated]
 
-    def list(self, request):
+    def get(self, request):
         print(self.request.user.username)
         account_transactions = TransactionShop.objects.all().order_by('-timestamp')
-        serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+        serializer = serializers.TransactionHistoryShopSerializer(account_transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
   
   
@@ -1175,18 +1177,20 @@ class TopFourShops(APIView):
 
 class productVendueview(APIView):
     serializer_class = serializers.ListProductSerializer
-    queryset = list_product.objects.all()
+    # queryset = list_product.objects.all()
     def get(self,request):
         # print(request.data['imen'])
         t = 0
-        listProduct = list_product.objects.all()
+        listProduct = list_product.objects.all().order_by('-timestamp')
         serializer= ListProductSerializer(listProduct, many = True)
         print(serializer.data[0]['product'])
         for i in serializer.data[0]['product']:
             print(i['price_product'])
             t+=i['price_product']
-        print(t)
-        listProduct.update(total=t)
+        print(listProduct[0])
+
+        listProduct[0].total=t
+        listProduct[0].save()
         return Response(serializer.data, status=status.HTTP_200_OK)
         
 
@@ -1200,7 +1204,8 @@ class paymentNFC(APIView):
         })
 
     def post(self, request):
-        listProd = list_product.objects.all()
+        t = 0
+        listProd = list_product.objects.all().order_by('-timestamp')
         ser = ListProductSerializer(listProd, many = True)
         print(ser.data[0]['shop']['name_shop'])
         # for i in ser.data:
@@ -1245,11 +1250,12 @@ class paymentNFC(APIView):
 
                         sender_acct.balance = float(sender_acct.balance) - float(ser.data[0]['total'])
                         sender_acct.save()
-
+                        
                         trx = TransactionShop.objects.create(
                             account = user,
                             amount = ser.data[0]['total'],
-                            to = ser.data[0]['shop']['name_shop']
+                            to = ser.data[0]['shop']['name_shop'],
+                            product =listProd[0]
                         )
 
                         trx.save()
@@ -1258,3 +1264,24 @@ class paymentNFC(APIView):
                 return Response({
                     "alert": f"Account not found, please try again."
                 }, status=status.HTTP_404_NOT_FOUND)
+
+
+
+class ListProductView(APIView):
+    serializer_class = serializers.ListProductSerializer
+    queryset = list_product.objects.all()
+    def get(self,request,id):
+        listProduct = list_product.objects.get(id = id)
+        serializer= ListProductSerializer(listProduct, many = False)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # ListProductSerializer
+class ListProductAllView(APIView):
+    serializer_class = serializers.ListProductSerializer
+    queryset = list_product.objects.all()
+    def get(self,request):
+        t = 0
+        listProduct = list_product.objects.all().order_by('-timestamp')
+        serializer= ListProductSerializer(listProduct, many = True)
+        
+        return Response(serializer.data[0], status=status.HTTP_200_OK)

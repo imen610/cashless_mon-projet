@@ -1,4 +1,5 @@
 import binascii
+from email.policy import default
 from math import prod
 import os
 from django.utils import timezone
@@ -75,7 +76,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     first_name= models.CharField(max_length=100,null=True,blank=True)
     last_name=models.CharField(max_length=100,null=True,blank=True)
     phone_number = models.CharField(max_length=17, unique=True, null=True)
-    image= models.ImageField(null = True, blank=True)
+    image= models.ImageField(default = "1053244.png", blank=True)
     address=models.CharField(max_length=255, default=None,null=True,blank=True)
     birthday = models.DateField(default=None,null=True,blank=True)
     is_admin = models.BooleanField(default=False)
@@ -107,7 +108,7 @@ class User(AbstractBaseUser,PermissionsMixin):
 class product(models.Model):
     name_product = models.CharField(max_length=255,default = None,null =True)
     price_product = models.FloatField(default = None,null =True)
-    image_product = models.ImageField(null = True, blank=True)
+    image_product = models.ImageField(default = "ecommerce-default-product.png", blank=True)
     def __str__(self):
         return f"{self.name_product}"
 
@@ -116,7 +117,7 @@ class Shop(models.Model):
     name_shop=models.CharField(max_length=255,default = None,null =True)
     address_shop=models.CharField(max_length=255 , default = None,null =True)
     email_shop= models.CharField(max_length=255,default = None,null =True)
-    image_shop = models.ImageField(null = True, blank=True)
+    image_shop = models.ImageField(default = "ecommerce-default-product.png", blank=True)
 
     def __str__(self):
         return f"{self.id}"
@@ -174,8 +175,19 @@ class Transaction(models.Model):
         max_length=10, choices=TYPE_CHOICES, default="inflow"
     )
 
+
+class list_product(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE,default = '')
+    product =  models.ManyToManyField(product)
+    shop = models.ForeignKey(Shop,on_delete=models.CASCADE)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=00.00)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+
+ 
 class TransactionShop(models.Model):
     account = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(list_product, on_delete=models.CASCADE, default=1)
     transaction_id = models.CharField(max_length=10, validators=[MinLengthValidator(10), MaxLengthValidator(10)], default=generate_transaction_id)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -188,7 +200,6 @@ class TransactionShop(models.Model):
         max_length=10, choices=TYPE_CHOICES, default="Outflow"
     )
     
-
 
     def __str__(self):
         return self.account.email 
@@ -228,12 +239,6 @@ class group(models.Model):
     id_groupe = models.CharField(max_length=4, validators=[MinLengthValidator(4), MaxLengthValidator(4)], default=generate_groupe_id)
     is_superuser = models.BooleanField(default = False)
     is_member = models.BooleanField(default =False)
-
-class list_product(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,default = '')
-    product =  models.ManyToManyField(product)
-    shop = models.ForeignKey(Shop,on_delete=models.CASCADE)
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=00.00)
 
 
 

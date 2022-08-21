@@ -162,24 +162,26 @@ class SetNewPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(min_length = 6, max_length=68,write_only=True)
     token = serializers.CharField(min_length = 1,write_only=True)
     uidb64 = serializers.CharField(min_length = 1,write_only=True)
+    email = serializers.CharField(min_length = 1,write_only=True)
     class Meta:
-        fields=['password','token','uidb64']
+        fields=['password','token','uidb64','email']
 
     def validate(self,attrs):
         try:
             password=attrs.get('password')
             token = attrs.get('token')
+            email = attrs.get('email')
             uidb64 = attrs.get('uidb64')
-            id=force_str(urlsafe_base64_decode(uidb64))
-            user=User.objects.get(id=id)
+            # id=force_str(urlsafe_base64_decode(uidb64))
+            # print(self.id)
+            
+            user=User.objects.get(email=email)
             if not PasswordResetTokenGenerator().check_token(user,token):
-                raise AuthenticationFailed('the reset link is invalid',401)
+                raise AuthenticationFailed(' invalid',401)
             user.set_password(password)
             user.save()
-
-
-        except Exception as identifier :
-            raise AuthenticationFailed('the reset link is invalid',401)
+        except Exception as e :
+            raise AuthenticationFailed('link is invalid',401)
         return super().validate(attrs)
 
 
@@ -285,8 +287,8 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
 class TransactionHistoryShopSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.TransactionShop
-        fields = ("transaction_id", "amount", "timestamp", "to", "type","account")
-        depth = 1
+        fields = ("id","transaction_id", "amount", "timestamp", "to", "type","account","product")
+        depth = 2
   
         extra_kwargs = {
             "transaction_id": {
@@ -299,9 +301,12 @@ class TransactionHistoryShopSerializer(serializers.ModelSerializer):
 
             "timestamp": {
                 "read_only": True
-            },
+            }, 
 
             "to": {
+                "read_only": True 
+            },
+            "product" : {
                 "read_only": True 
             }
         }
