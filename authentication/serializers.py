@@ -56,8 +56,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         y=uuid.uuid4().int
         print(x)
        
-        obj = Wallet(wallet_id=x, balance=0,account=user, is_disabled=False)
+        obj = Wallet(wallet_id=x, balance=0,account=user, is_disabled=True)
+        
         obj.save()
+        user.wallet_blocked = True
+        user.save()
         grp =group(user=user,id_groupe=y,is_superuser = True, is_member =False)
         grp.save()
         
@@ -119,6 +122,7 @@ class LoginSerializer(serializers.Serializer):
         return {
             'refresh': user.tokens()['refresh'],
             'access': user.tokens()['access'],
+            'hello ':'hello imen'
         }
     def save(self):
         email = self.validated_data['email']
@@ -192,7 +196,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta :
         model = User
-        fields = ['id','username','email','first_name','last_name','phone_number','image','address','membre','created_at','wallet_blocked','is_membre']
+        fields = ['id','username','email','first_name','last_name','phone_number','image','address','membre','created_at','wallet_blocked','is_membre','is_admin']
         depth = 1
         
 
@@ -338,6 +342,8 @@ class TokenObtainLifetimeSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         refresh = self.get_token(self.user)
         data['lifetime'] = int(refresh.access_token.lifetime.total_seconds())
+        data.update({'is_admin': self.user.is_admin})
+        data.update({'wallet_blocked': self.user.wallet_blocked})
         return data
 
 

@@ -56,8 +56,4 @@ urlpatterns=[
     path("paymentNFC/", views.paymentNFC.as_view(), name='paymentNFC'),
     path("listProdPaied/<int:id>/", views.ListProductView.as_view(), name='ListProduct'),
     path("ListProductAll/", views.ListProductAllView.as_view(), name='ListProductAll'),
-    # ListProductView
    ]
-#    
-
-# productVendueview

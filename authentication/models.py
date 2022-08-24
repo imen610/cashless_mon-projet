@@ -2,6 +2,7 @@ import binascii
 from email.policy import default
 from math import prod
 import os
+from tkinter import N
 from django.utils import timezone
 from django.db import models
 from django.db import models
@@ -147,12 +148,10 @@ def generate_transaction_id():
     return trx_id 
 
 class Wallet(models.Model):
-    #id = models.IntegerField(primary_key=True, default= 00)
     account = models.ForeignKey(User,on_delete=models.CASCADE, null =True)
     wallet_id=models.CharField(max_length=17, validators=[MinLengthValidator(17), MaxLengthValidator(17)], default=generate_wallet_id, unique=True)
-    #shop = models.ForeignKey(Shop,on_delete=models.CASCADE , null = True)
     creation_date = models.DateTimeField(default=timezone.now)
-    is_disabled = models.BooleanField(default=False)
+    is_disabled = models.BooleanField(default=True)
     balance = models.DecimalField(max_digits=10, decimal_places=3, default=0.000)
    
 
@@ -181,7 +180,7 @@ class list_product(models.Model):
     product =  models.ManyToManyField(product)
     shop = models.ForeignKey(Shop,on_delete=models.CASCADE)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=00.00)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    # timestamp = models.DateTimeField(auto_now_add=True)
 
 
  
