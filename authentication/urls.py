@@ -39,6 +39,7 @@ urlpatterns=[
     path("PaymentShopsAdminDashView/", views.PaymentShopsAdminDashView.as_view(), name="PaymentShopsAdminDashView"),
     path("TransactionsAdminDashListView/", views.TransactionsAdminDashListView.as_view(), name="TransactionsAdminDashListView"),
     path("transactions/<int:pk>/<str:username>/", views.TransactionsMemberListView.as_view(), name="transactions_member"),
+    path("payments/<int:pk>/<str:username>/", views.PaymentsMemberListView.as_view(), name="payments_member"),
     path("stat/", views.statistiqueWallets.as_view(), name="statistiqueWallets"),
     path("statisticsTransactions/", views.statisticsTransactionsView.as_view(), name="statisticsTransactions"),
     path("pay/", views.MakePaymentView.as_view(), name="pay"),
@@ -56,4 +57,6 @@ urlpatterns=[
     path("paymentNFC/", views.paymentNFC.as_view(), name='paymentNFC'),
     path("listProdPaied/<int:id>/", views.ListProductView.as_view(), name='ListProduct'),
     path("ListProductAll/", views.ListProductAllView.as_view(), name='ListProductAll'),
+    path("MaxAmountView/<int:account>/", views.MaxAmountView.as_view(), name='MaxAmountView'),
+    # MaxAmountView
    ]

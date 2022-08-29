@@ -1,4 +1,5 @@
 import binascii
+from decimal import Decimal
 from email.policy import default
 from math import prod
 import os
@@ -153,6 +154,7 @@ class Wallet(models.Model):
     creation_date = models.DateTimeField(default=timezone.now)
     is_disabled = models.BooleanField(default=True)
     balance = models.DecimalField(max_digits=10, decimal_places=3, default=0.000)
+    maxAmount = models.DecimalField(max_digits=10, decimal_places=3, default=0.000)
    
 
 
@@ -180,7 +182,7 @@ class list_product(models.Model):
     product =  models.ManyToManyField(product)
     shop = models.ForeignKey(Shop,on_delete=models.CASCADE)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=00.00)
-    # timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True, null = True)
 
 
  

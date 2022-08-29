@@ -536,29 +536,13 @@ class AccountWalletView(APIView):
             return Response({
                 "account status": "enabled",
                 "wallet id": wallet_data['wallet_id'],
-                "balance": float(wallet_data['balance'])
+                "balance": float(wallet_data['balance']),
+                "maxAmount": float(wallet_data['maxAmount'])
             })
 
 class AccountWalletMemberView(APIView):
     serializer_class = serializers.WalletSerializer
     permission_classes = [IsAuthenticated]
-
-    # def get(self, request):
-       
-    #     obj = Wallet(wallet_id='0958', balance=0,account=request.user, is_disabled=False)
-    #     obj.save()
-    #     print('request.user',request.user)
-    #     wallet_data2 = Wallet.objects.filter(
-    #         account=8004867)
-    #     print('wallet_data2',wallet_data2)
-
-    #     wallet_data='Usama'
-    #     #if wallet_data["is_disabled"] == True:
-    #     return Response({
-    #         "account status": "blocked",
-    #         "wallet id": wallet_data,
-    #         "message": "Your account has been disabled, contact support"
-    #     })
 
     def get(self, request,pk):
         print('request.user',request.user.id)
@@ -572,6 +556,7 @@ class AccountWalletMemberView(APIView):
                 "wallet id": wallet_data['wallet_id'],
                 "is_disabled": wallet_data['is_disabled'],
                 "balance": float(wallet_data['balance']),
+                "maxAmount": float(wallet_data['maxAmount']),
                 "message": "Your account has been disabled, contact support"
             })
 
@@ -580,7 +565,9 @@ class AccountWalletMemberView(APIView):
                 "account status": "enabled",
                 "wallet id": wallet_data['wallet_id'],
                 "is_disabled": wallet_data['is_disabled'],
-                "balance": float(wallet_data['balance'])
+                "balance": float(wallet_data['balance']),
+                "maxAmount": float(wallet_data['maxAmount']),
+
             })
 
 class SuccessView(APIView):
@@ -803,7 +790,7 @@ class TransactionsShopListView(ListAPIView):
         print(self.request.user.username)
         account_transactions = TransactionShop.objects.filter(account = self.request.user).order_by('-timestamp')
         serializer = serializers.TransactionHistoryShopSerializer(account_transactions, many=True)
-        print(serializer.data[0]['product']['product'])
+        # print(serializer.data[0]['product']['product'])
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PaymentShopsAdminDashView(ListAPIView):
@@ -832,6 +819,22 @@ class TransactionsMemberListView(ListAPIView):
         my_trans2.update(type='Inflow')
         print(account_transactions)
         serializer = serializers.TransactionHistorySerializer(account_transactions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+  
+  
+class PaymentsMemberListView(ListAPIView):
+    serializer_class = serializers.TransactionHistoryShopSerializer
+    queryset = TransactionShop.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request,pk,username):
+        print(self.request.user.username)
+        account_transactions = TransactionShop.objects.filter(Q(account = pk) ).order_by('-timestamp')
+        # my_trans = TransactionShop.objects.filter(account = pk)
+        # my_trans.update(type='Outflow')
+       
+        print(account_transactions)
+        serializer = serializers.TransactionHistoryShopSerializer(account_transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
   
 
@@ -880,7 +883,7 @@ class MakePaymentView(APIView):
                     recv_account = User.objects.get(username=val_data['to_acct'])
                     wallet_instance = Wallet.objects.get(account=recv_account)
 
-                    if float(amount) > float(sender_acct.balance):
+                    if float(amount) > float(sender_acct.maxAmount):
                         return Response({
                             'account status' : 'insuffisant',
                             'alert': "You do not have enough funds to complete the transfer..."
@@ -891,6 +894,7 @@ class MakePaymentView(APIView):
                         wallet_instance.save()
 
                         sender_acct.balance = float(sender_acct.balance) - float(val_data['amount'])
+                        sender_acct.maxAmount = float(sender_acct.maxAmount) - float(val_data['amount'])
                         sender_acct.save()
 
                         trx = Transaction.objects.create(
@@ -954,6 +958,7 @@ class MakePaymentShopView(APIView):
 
                     else:
                         wallet_instance.balance = float(wallet_instance.balance) + float(amount)
+
                         wallet_instance.save()
 
                         sender_acct.balance = float(sender_acct.balance) - float(val_data['amount'])
@@ -1007,18 +1012,21 @@ class MakeTransactionsView(APIView):
                         }, status=status.HTTP_406_NOT_ACCEPTABLE)
 
                     else:
+
                         wallet_instance.balance = float(wallet_instance.balance) + float(amount)
                         wallet_instance.save()
 
                         sender_acct.balance = float(sender_acct.balance) - float(val_data['amount'])
+
                         sender_acct.save()
+                       
 
                         trx = Payment.objects.create(
                             from_acct = request.user,
                             amount = amount,
                             to_acct = val_data['to_acct']
                         )
-
+                        print('hello')
                         trx.save()
                         return redirect('success')
 
@@ -1239,7 +1247,7 @@ class paymentNFC(APIView):
                     # print(recv_account)
                     wallet_instance = shop_account.objects.get(account=recv_account)
 
-                    if float(amount) > float(sender_acct.balance):
+                    if float(amount) > float(sender_acct.maxAmount):
                         return Response({
                             'alert': "You do not have enough funds to complete the transfer..."
                         }, status=status.HTTP_406_NOT_ACCEPTABLE)
@@ -1249,6 +1257,7 @@ class paymentNFC(APIView):
                         wallet_instance.save()
 
                         sender_acct.balance = float(sender_acct.balance) - float(ser.data[0]['total'])
+                        sender_acct.maxAmount = float(sender_acct.maxAmount) - float(ser.data[0]['total'])
                         sender_acct.save()
                         
                         trx = TransactionShop.objects.create(
@@ -1285,3 +1294,19 @@ class ListProductAllView(APIView):
         serializer= ListProductSerializer(listProduct, many = True)
         
         return Response(serializer.data[0], status=status.HTTP_200_OK)
+
+class MaxAmountView(APIView):
+    serializer_class = serializers.WalletSerializer
+    
+    def post(self,request,account):
+        wal = Wallet.objects.get(account = account)
+        if float(request.data['maxAmount']) > float(wal.balance):
+            return Response({
+                'account status' : 'insuffisant',
+                'alert': "You do not have enough funds to complete the transfer..."
+                }, status=status.HTTP_406_NOT_ACCEPTABLE)
+        else : 
+            print(request.data['maxAmount'])
+            wal.maxAmount = request.data['maxAmount']
+            wal.save()
+            return Response(status=status.HTTP_200_OK)

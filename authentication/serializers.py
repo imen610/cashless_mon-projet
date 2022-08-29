@@ -248,7 +248,7 @@ from . import models
 class WalletSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Wallet
-        fields = ("wallet_id", "is_disabled", "balance","account")
+        fields = ("wallet_id", "is_disabled", "balance","account","maxAmount")
         extra_kwargs = {
             "wallet_id": {
                 "read_only": True
@@ -344,6 +344,7 @@ class TokenObtainLifetimeSerializer(TokenObtainPairSerializer):
         data['lifetime'] = int(refresh.access_token.lifetime.total_seconds())
         data.update({'is_admin': self.user.is_admin})
         data.update({'wallet_blocked': self.user.wallet_blocked})
+        data.update({'id': self.user.id})
         return data
 
 
