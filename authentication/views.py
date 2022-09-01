@@ -63,7 +63,20 @@ class RegisterAPIView(views.APIView):
    
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-           
+            user_data=serializer.data 
+         
+            user =User.objects.get(email=user_data['email'])
+
+            token=RefreshToken.for_user(user).access_token
+            current_site=get_current_site(request).domain
+        
+            relativeLink=reverse('email-verify')
+            absurl='http://'+ str(current_site)+str(relativeLink)+"?token="+str(token)
+            email_body='hi'+user.username+'Use link below to verify your email \n' + absurl
+            data={'email_body':email_body ,'to_email':user.email,'email_subject':'Verify your email'}
+        
+   
+            Util.send_email(data)
            
 
             phone_number = serializer.validated_data['phone_number']
@@ -150,28 +163,28 @@ class TokenRefreshView(TokenViewBase):
 #         return Response(user_data,status=status.HTTP_201_CREATED)
 
 
-# class verifyEmail(views.APIView):
+class verifyEmail(views.APIView):
 
-#     serializer_class=EmailVerificationSerializer
+    serializer_class=EmailVerificationSerializer
 
-#     #token_param_config=openapi.Parameter('token',in_=openapi.IN_QUERY,description='description',type=openapi.TYPE_STRING)
+    #token_param_config=openapi.Parameter('token',in_=openapi.IN_QUERY,description='description',type=openapi.TYPE_STRING)
     
     
-#     #@swagger_auto_schema(manual_parameters=[token_param_config])
-#     def get(self,request):
-#         token = request.GET.get('token')
+    #@swagger_auto_schema(manual_parameters=[token_param_config])
+    def get(self,request):
+        token = request.GET.get('token')
         
-#         try:
-#             payload = jwt.decode(jwt=token, key=settings.SECRET_KEY, algorithms=['HS256'])
-#             user=User.objects.get(id=payload['user_id'])
-#             if not user.is_verified: 
-#                 user.is_verified = True
-#                 user.save()
-#             return Response({'email':'Successfully activated'},status=status.HTTP_201_CREATED)
-#         except jwt.ExpiredSignatureError as identifier :
-#             return Response({'error':'Activation expired'},status=status.HTTP_400_BAD_REQUEST)
-#         except jwt.exceptions.DecodeError as identifier :
-#             return Response({'error':'Invalid token'},status=status.HTTP_400_BAD_REQUEST)
+        try:
+            payload = jwt.decode(jwt=token, key=settings.SECRET_KEY, algorithms=['HS256'])
+            user=User.objects.get(id=payload['user_id'])
+            if not user.is_verified: 
+                user.is_verified = True
+                user.save()
+            return Response({'email':'Successfully activated'},status=status.HTTP_201_CREATED)
+        except jwt.ExpiredSignatureError as identifier :
+            return Response({'error':'Activation expired'},status=status.HTTP_400_BAD_REQUEST)
+        except jwt.exceptions.DecodeError as identifier :
+            return Response({'error':'Invalid token'},status=status.HTTP_400_BAD_REQUEST)
         
 
     
@@ -1145,7 +1158,7 @@ class TopFourShops(APIView):
  
     serializer_class = serializers.TransactionHistoryShopSerializer
     queryset = TransactionShop.objects.all()
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticatd]
 
     def get(self, request):
         l_uni = []

@@ -14,7 +14,8 @@ import os
 from pathlib import Path
 import datetime
 from datetime import timedelta
-
+import django_heroku
+import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,9 +27,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-rl3#=*kw8q1m&@f&g@vfc4u00$zib%1lx&e$#wfq)_=2qauu0p'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1']
 
 AUTH_USER_MODEL='authentication.User'
 
@@ -88,6 +89,7 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -110,7 +112,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 
 ROOT_URLCONF = 'cashless.urls'
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -137,7 +139,7 @@ WSGI_APPLICATION = 'cashless.wsgi.application'
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': 'mywallet', 
+#         'NAME': 'test', 
 #         'USER': 'postgres', 
 #         'PASSWORD': 'imen',
 #         'HOST': '127.0.0.1', 
@@ -145,15 +147,24 @@ WSGI_APPLICATION = 'cashless.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': "mywallet",
-        'USER':"root",
-        "PASSWORD":""
-        }
- }
 # DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': "mywallet",
+#         'USER':"root",
+#         "PASSWORD":""
+#         }
+#  }
+
+
+
+
+DATABASES = {
+    'default': dj_database_url.config()
+}
+
+
+# DATABASES = { 
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
 #         'NAME': BASE_DIR / 'db.sqlite3',
@@ -167,7 +178,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    # only staff users can see the data and input data
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAdminUser'
+    # ]
 }
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
@@ -255,3 +270,4 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR,'static')
 ]
 MEDIA_ROOT = os.path.join(BASE_DIR,'static/images')
+django_heroku.settings(locals())
